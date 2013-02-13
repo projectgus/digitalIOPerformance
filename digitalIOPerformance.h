@@ -1,4 +1,4 @@
- /*
+/*
  *
  * Header for high performance Arduino Digital I/O
  *
@@ -27,7 +27,6 @@
 
 #include "Arduino.h"
 #include <util/atomic.h>
-
 
 /* Arduino board:
  *   mini | nano | bt
@@ -282,8 +281,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   pro | lilypad
  *   Arduino Pro or Pro Mini (3.3V, 8 MHz) w/ ATmega168 | LilyPad Arduino w/ ATmega168
@@ -537,8 +534,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   lilypad328 | pro328
  *   LilyPad Arduino w/ ATmega328 | Arduino Pro or Pro Mini (3.3V, 8 MHz) w/ ATmega328
@@ -792,8 +787,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   atmega8
  *   Arduino NG or older w/ ATmega8
@@ -1044,8 +1037,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   pro5v | atmega168 | diecimila
  *   Arduino Pro or Pro Mini (5V, 16 MHz) w/ ATmega168 | Arduino NG or older w/ ATmega168 | Arduino Diecimila or Duemilanove w/ ATmega168
@@ -1299,8 +1290,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   fio
  *   Arduino Fio
@@ -1554,8 +1543,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   mega2560
  *   Arduino Mega 2560 or Mega ADK
@@ -2218,8 +2205,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   pro5v328 | atmega328 | ethernet | uno
  *   Arduino Pro or Pro Mini (5V, 16 MHz) w/ ATmega328 | Arduino Duemilanove w/ ATmega328 | Arduino Ethernet | Arduino Uno
@@ -2473,8 +2458,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   bt328 | nano328 | mini328
  *   Arduino BT w/ ATmega328 | Arduino Nano w/ ATmega328 | Arduino Mini w/ ATmega328
@@ -2728,8 +2711,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   esplora
  *   Arduino Esplora
@@ -3064,8 +3045,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   mega
  *   Arduino Mega (ATmega1280)
@@ -3728,8 +3707,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   LilyPadUSB
  *   LilyPad Arduino USB
@@ -4064,8 +4041,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   micro
  *   Arduino Micro
@@ -4400,8 +4375,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
 /* Arduino board:
  *   leonardo
  *   Arduino Leonardo
@@ -4736,9 +4709,6 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 
 #endif
-
-
-
 #ifndef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics couldn't match this board configuration. No fast I/O is available. The header may be out of date."
 #endif
@@ -4759,3 +4729,4 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 #endif
 #endif
+

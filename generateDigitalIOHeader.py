@@ -192,154 +192,6 @@ def extract_portnames_pins(board):
     if len(board["ports"]) != int(board["macros"]["NUM_DIGITAL_PINS"]):
         raise RuntimeError("Number of ports in %s doesn't match number of digital pins reported in header" % (board["id"], len(board["ports"]), board["macros"]["NUM_DIGITAL_PINS"]))
 
-
-HEADER_PREFIX = """ /*
- *
- * Header for high performance Arduino Digital I/O
- *
- * Automatically generated from the Arduino library setup (boards.txt & pins_arduino.h)
- *
- * See the accompanying file README.md for documentation.
- *
- * ****
- *
- * This header is a derived work of the Arduino microcontroller libraries, which are
- * licensed under LGPL. Although as a header file it is not bound by the same usage
- * clauses as the library itself (see "3. Object Code Incorporating Material from
- * Library Header Files.)"
- *
- * Note that although the code generated functions below here look horrific,
- * they're written to inline only very small subsets of themselves at compile
- * time (they generate single port-register instructions when the parameters
- * are constant.)
- *
- *
- */
-
-#ifdef __AVR__
-#ifndef _DIGITALIO_PERFORMANCE
-#define _DIGITALIO_PERFORMANCE
-
-#include "Arduino.h"
-#include <util/atomic.h>
-
-"""
-
-HEADER_SUFFIX = """
-
-#ifndef _DIGITALIO_MATCHED_BOARD
-#error "This header's Arduino configuration heuristics couldn't match this board configuration. No fast I/O is available. The header may be out of date."
-#endif
-#undef _DIGITALIO_MATCHED_BOARD
-
-#ifndef DIGITALIO_MANUAL
-#ifdef DIGITALIO_NO_INTERRUPTS
-#define digitalWrite digitalWriteFast
-#define digitalRead digitalReadFast
-#define pinMode pinModeFast
-#else
-#define digitalWrite digitalWriteSafe
-#define digitalRead digitalReadSafe
-#define pinMode pinModeSafe
-#endif
-
-#endif
-
-#endif
-#endif
-"""
-
-BOARD_TEMPLATE = """
-/* Arduino board:
- *   %(id)s
- *   %(name)s
- *   MCU: %(build.mcu)s
- */
-#if %(ifdef_clause)s
-#ifdef _DIGITALIO_MATCHED_BOARD
-#error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
-#endif
-#define _DIGITALIO_MATCHED_BOARD
-
-__attribute__((always_inline))
-static inline void pinModeFast(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-%(pinmode_clause)s
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteFast(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-%(digitalwrite_clause)s
-}
-
-__attribute__((always_inline))
-static inline int digitalReadFast(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-%(digitalread_clause)s
-  return LOW;
-}
-
-__attribute__((always_inline))
-static inline void noAnalogWrite(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return; // noAnalogWrite is taken care of by digitalWrite() for variables
-  }
-%(timer_clause)s
-}
-
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
-
-#endif
-
-"""
-
 DIGITALWRITE_TEMPLATE = """
   else if(pin == %(number)s && value) PORT%(port)s  |= %(bitmask)s;
   else if(pin == %(number)s && !value) PORT%(port)s &= ~%(bitmask)s;
@@ -390,7 +242,10 @@ def generate_header_file(boards, identifying_keys, output):
     """
     Write a header file with fast inlined methods for all the board types
     """
-    output.write(HEADER_PREFIX)
+    with open("components/board_template.cpp") as template:
+        BOARD_TEMPLATE = template.read()
+    with open("components/header.cpp") as header:
+        output.write(header.read())
     for board in boards:
         # Work out the macro conditional
         ifdef_clause = []
@@ -422,7 +277,8 @@ def generate_header_file(boards, identifying_keys, output):
                     timer_clause += TIMER_TEMPLATE % locals() + "\n"
 
         output.write(BOARD_TEMPLATE % dict(locals(), **board))
-    output.write(HEADER_SUFFIX);
+    with open("components/footer.cpp") as footer:
+        output.write(footer.read())
 
 
 if __name__ == "__main__":
