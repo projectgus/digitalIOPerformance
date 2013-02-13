@@ -185,6 +185,21 @@ HEADER_PREFIX = """ /*
  *
  * Automatically generated from the Arduino library setup (boards.txt & pins_arduino.h)
  *
+ * Adds the following functions:
+ *
+ * digitalWriteFast() / digitalReadFast / pinModeFast -
+ *
+ * Versions of digitalWrite()/digitalRead/pinMode that compile down to a
+ * single port register instruction if the pin number is known at compile
+ * time (falls through to the slower versions if the pin number is a variable.)
+ *
+ * turnOffPWM() - Using digitalWriteFast() will not automatically turn off a
+ * previous analogWrite() to that port, unlike digitalWrite(). If you are mixing
+ * analogWrite() and digitalWriteFast() on a port, call this function before
+ * calling digitalWriteFast().
+ *
+ * ****
+ *
  * This header is a derived work of the Arduino microcontroller libraries, which are
  * licensed under LGPL. Although as a header file it is not bound by the same usage
  * clauses as the library itself (see "3. Object Code Incorporating Material from
@@ -194,6 +209,7 @@ HEADER_PREFIX = """ /*
  * they're written to inline only very small subsets of themselves at compile
  * time (they generate single port-register instructions when the parameters
  * are constant.)
+ *
  *
  */
 
