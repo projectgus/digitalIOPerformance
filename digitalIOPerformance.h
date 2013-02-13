@@ -28,6 +28,53 @@
 #include "Arduino.h"
 #include <util/atomic.h>
 
+// Forward declarations for per-Arduino-board functions:
+inline static void pinModeFast(uint8_t pin, uint8_t mode);
+inline static void digitalWriteFast(uint8_t pin, uint8_t value);
+inline static int digitalReadFast(uint8_t pin);
+inline static void noAnalogWrite(uint8_t pin);
+
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
 /* Arduino board:
  *   mini | nano | bt
  *   Arduino Mini w/ ATmega168 | Arduino Nano w/ ATmega168 | Arduino BT w/ ATmega168
@@ -237,48 +284,6 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~COM2A1;
 
 }
-
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
 
 #endif
 /* Arduino board:
@@ -491,48 +496,6 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
-
 #endif
 /* Arduino board:
  *   lilypad328 | pro328
@@ -744,48 +707,6 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
-
 #endif
 /* Arduino board:
  *   atmega8
@@ -993,48 +914,6 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2 &= ~COM21;
 
 }
-
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
 
 #endif
 /* Arduino board:
@@ -1247,48 +1126,6 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
-
 #endif
 /* Arduino board:
  *   fio
@@ -1499,48 +1336,6 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~COM2A1;
 
 }
-
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
 
 #endif
 /* Arduino board:
@@ -2162,48 +1957,6 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
-
 #endif
 /* Arduino board:
  *   pro5v328 | atmega328 | ethernet | uno
@@ -2415,48 +2168,6 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
-
 #endif
 /* Arduino board:
  *   bt328 | nano328 | mini328
@@ -2667,48 +2378,6 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~COM2A1;
 
 }
-
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
 
 #endif
 /* Arduino board:
@@ -3001,48 +2670,6 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 13) TCCR4A &= ~COM4A1;
 
 }
-
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
 
 #endif
 /* Arduino board:
@@ -3664,48 +3291,6 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
-
 #endif
 /* Arduino board:
  *   LilyPadUSB
@@ -3997,48 +3582,6 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 13) TCCR4A &= ~COM4A1;
 
 }
-
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
 
 #endif
 /* Arduino board:
@@ -4332,48 +3875,6 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
-
 #endif
 /* Arduino board:
  *   leonardo
@@ -4665,48 +4166,6 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 13) TCCR4A &= ~COM4A1;
 
 }
-
-__attribute__((always_inline))
-static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
-  if(!__builtin_constant_p(pin)) {
-    pinMode(pin, mode);
-  }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
-    }
-    pinModeFast(pin, mode);
-  }
-}
-
-__attribute__((always_inline))
-static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
-  if(!__builtin_constant_p(pin)) {
-    digitalWrite(pin, value);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
-      digitalWriteFast(pin, value);
-    }
-  }
-}
-
-__attribute__((always_inline))
-static inline int digitalReadSafe(uint8_t pin) {
-  if(!__builtin_constant_p(pin)) {
-    return digitalRead(pin);
-  }
-  else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      return digitalReadFast(pin);
-    }
-  }
-}
-
 
 #endif
 #ifndef _DIGITALIO_MATCHED_BOARD
