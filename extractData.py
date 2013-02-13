@@ -51,12 +51,12 @@ def add_variant_macros(model):
 for model in models:
     add_variant_macros(model)
 
-# Trim the macros we care about to remove any with possible preprocessor ambiguity
-# (spaces, parentheses)
+# Trim the macros we care about to be only those with numeric universally values
+# (anything else is too tricky, especially with token representation ambiguities)
 ambiguous_macros = set()
 for model in models:
     for key,value in model["macros"].items():
-        if " " in value or "(" in value or ")" in value:
+        if not re.match(r"^-?0?x?[\dA-Fa-f]+L?$", value.strip()):
             ambiguous_macros.add(key)
 for model in models:
     for ambiguous in ambiguous_macros:
@@ -164,7 +164,6 @@ MODEL_TEMPLATE = """
  *   MCU: %(build.mcu)s
  */
 #if %(ifdef_clause)s
-#if %(ifvalue_clause)s
 #ifdef _DIGITALIO_MATCHED_MODEL
 #error "This header's Arduino configuration heuristics have matched multiple models. The header may be out of date."
 #endif
@@ -196,7 +195,6 @@ static inline int digitalReadFast(uint8_t pin) {
 }
 
 #endif
-#endif
 
 """
 
@@ -219,18 +217,15 @@ with open("digitalIOPerformance.h", "w") as output:
     for model in models:
         # Work out the macro conditional
         ifdef_clause = ["1"]
-        ifvalue_clause = ["1"]
         for key in identifying_keys:
-            # all the +0 nonsense here is to detect empty macros
-            # (Arduino-mk inserts them), same for separating out ==
-            # equality tests until we know the macro has a non-empty value
+            # all the +0 nonsense here is to detect defined-but-empty macros
+            # (Arduino-mk inserts them)
             if key in model["macros"]:
-                ifdef_clause.append("defined(%s) && (%s+0)" % (key, key))
-                ifvalue_clause.append("(%s == %s)" % (key, model["macros"][key]))
+                ifdef_clause.append("defined(%(key)s) && (%(key)s+0) == %(value)s" %
+                                    {"key": key, "value": model["macros"][key]})
             else:
                 ifdef_clause.append("(!defined(%s) || !(%s+0))" % (key,key))
         ifdef_clause = " && ".join(ifdef_clause)
-        ifvalue_clause = " && ".join(ifvalue_clause)
 
         # Build up the macro conditionals
         digitalwrite_clause = ""
