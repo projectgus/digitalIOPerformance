@@ -22,8 +22,11 @@ New, untested, hacky, work in progress. :)
 
 Please raise an issue if this doesn't work with your Arduino install,
 or doesn't inline properly (ie bloated code size instead of shrinking
-code size!) I'm using Arduino 1.0.3 with gcc 4.7 but it should work
-with any Arduino version above 1.0 (I think.)
+code size!)
+
+Minimal testing done with Windows Arduino 1.0.3 (gcc 4.3) and my
+Ubuntu Arduino 1.0.3 (gcc 4.7.) Should work with any Arduino version
+above 1.0 (I think.)
 
 =Known Shortcomings=
 
