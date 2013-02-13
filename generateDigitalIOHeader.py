@@ -210,7 +210,7 @@ DIGITALREAD_TEMPLATE = """
 """.strip("\n")
 
 TIMER_TEMPLATE = """
-  else if(pin == %(number)s) %(timer_reg)s &= ~%(timer_bit)s;
+  else if(pin == %(number)s) %(timer_reg)s &= ~_BV(%(timer_bit)s);
 """.strip("\n")
 
 # Lookup table from the timer specifications given in pins_arduino.h

@@ -276,12 +276,12 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR2A &= ~COM2B1;
-  else if(pin == 5) TCCR0A &= ~COM0B1;
-  else if(pin == 6) TCCR0A &= ~COM0A1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR2A &= ~COM2A1;
+  else if(pin == 3) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 5) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 6) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
 
@@ -487,12 +487,12 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR2A &= ~COM2B1;
-  else if(pin == 5) TCCR0A &= ~COM0B1;
-  else if(pin == 6) TCCR0A &= ~COM0A1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR2A &= ~COM2A1;
+  else if(pin == 3) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 5) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 6) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
 
@@ -698,12 +698,12 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR2A &= ~COM2B1;
-  else if(pin == 5) TCCR0A &= ~COM0B1;
-  else if(pin == 6) TCCR0A &= ~COM0A1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR2A &= ~COM2A1;
+  else if(pin == 3) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 5) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 6) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
 
@@ -909,9 +909,9 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR2 &= ~COM21;
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2 &= ~_BV(COM21);
 
 }
 
@@ -1117,12 +1117,12 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR2A &= ~COM2B1;
-  else if(pin == 5) TCCR0A &= ~COM0B1;
-  else if(pin == 6) TCCR0A &= ~COM0A1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR2A &= ~COM2A1;
+  else if(pin == 3) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 5) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 6) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
 
@@ -1328,12 +1328,12 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR2A &= ~COM2B1;
-  else if(pin == 5) TCCR0A &= ~COM0B1;
-  else if(pin == 6) TCCR0A &= ~COM0A1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR2A &= ~COM2A1;
+  else if(pin == 3) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 5) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 6) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
 
@@ -1939,21 +1939,21 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 2) TCCR3A &= ~COM3B1;
-  else if(pin == 3) TCCR3A &= ~COM3C1;
-  else if(pin == 4) TCCR0A &= ~COM0B1;
-  else if(pin == 5) TCCR3A &= ~COM3A1;
-  else if(pin == 6) TCCR4A &= ~COM4A1;
-  else if(pin == 7) TCCR4A &= ~COM4B1;
-  else if(pin == 8) TCCR4A &= ~COM4C1;
-  else if(pin == 9) TCCR2A &= ~COM2B1;
-  else if(pin == 10) TCCR2A &= ~COM2A1;
-  else if(pin == 11) TCCR1A &= ~COM1A1;
-  else if(pin == 12) TCCR1A &= ~COM1B1;
-  else if(pin == 13) TCCR0A &= ~COM0A1;
-  else if(pin == 44) TCCR5A &= ~COM5C1;
-  else if(pin == 45) TCCR5A &= ~COM5B1;
-  else if(pin == 46) TCCR5A &= ~COM5A1;
+  else if(pin == 2) TCCR3A &= ~_BV(COM3B1);
+  else if(pin == 3) TCCR3A &= ~_BV(COM3C1);
+  else if(pin == 4) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 5) TCCR3A &= ~_BV(COM3A1);
+  else if(pin == 6) TCCR4A &= ~_BV(COM4A1);
+  else if(pin == 7) TCCR4A &= ~_BV(COM4B1);
+  else if(pin == 8) TCCR4A &= ~_BV(COM4C1);
+  else if(pin == 9) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 10) TCCR2A &= ~_BV(COM2A1);
+  else if(pin == 11) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 12) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 13) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 44) TCCR5A &= ~_BV(COM5C1);
+  else if(pin == 45) TCCR5A &= ~_BV(COM5B1);
+  else if(pin == 46) TCCR5A &= ~_BV(COM5A1);
 
 }
 
@@ -2159,12 +2159,12 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR2A &= ~COM2B1;
-  else if(pin == 5) TCCR0A &= ~COM0B1;
-  else if(pin == 6) TCCR0A &= ~COM0A1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR2A &= ~COM2A1;
+  else if(pin == 3) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 5) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 6) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
 
@@ -2370,12 +2370,12 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR2A &= ~COM2B1;
-  else if(pin == 5) TCCR0A &= ~COM0B1;
-  else if(pin == 6) TCCR0A &= ~COM0A1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR2A &= ~COM2A1;
+  else if(pin == 3) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 5) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 6) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
 
@@ -2661,13 +2661,13 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR0A &= ~COM0B1;
-  else if(pin == 5) TCCR3A &= ~COM3A1;
-  else if(pin == 6) TCCR4C &= ~COM4D1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR0A &= ~COM0A1;
-  else if(pin == 13) TCCR4A &= ~COM4A1;
+  else if(pin == 3) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 5) TCCR3A &= ~_BV(COM3A1);
+  else if(pin == 6) TCCR4C &= ~_BV(COM4D1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 13) TCCR4A &= ~_BV(COM4A1);
 
 }
 
@@ -3273,21 +3273,21 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 2) TCCR3A &= ~COM3B1;
-  else if(pin == 3) TCCR3A &= ~COM3C1;
-  else if(pin == 4) TCCR0A &= ~COM0B1;
-  else if(pin == 5) TCCR3A &= ~COM3A1;
-  else if(pin == 6) TCCR4A &= ~COM4A1;
-  else if(pin == 7) TCCR4A &= ~COM4B1;
-  else if(pin == 8) TCCR4A &= ~COM4C1;
-  else if(pin == 9) TCCR2A &= ~COM2B1;
-  else if(pin == 10) TCCR2A &= ~COM2A1;
-  else if(pin == 11) TCCR1A &= ~COM1A1;
-  else if(pin == 12) TCCR1A &= ~COM1B1;
-  else if(pin == 13) TCCR0A &= ~COM0A1;
-  else if(pin == 44) TCCR5A &= ~COM5C1;
-  else if(pin == 45) TCCR5A &= ~COM5B1;
-  else if(pin == 46) TCCR5A &= ~COM5A1;
+  else if(pin == 2) TCCR3A &= ~_BV(COM3B1);
+  else if(pin == 3) TCCR3A &= ~_BV(COM3C1);
+  else if(pin == 4) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 5) TCCR3A &= ~_BV(COM3A1);
+  else if(pin == 6) TCCR4A &= ~_BV(COM4A1);
+  else if(pin == 7) TCCR4A &= ~_BV(COM4B1);
+  else if(pin == 8) TCCR4A &= ~_BV(COM4C1);
+  else if(pin == 9) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 10) TCCR2A &= ~_BV(COM2A1);
+  else if(pin == 11) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 12) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 13) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 44) TCCR5A &= ~_BV(COM5C1);
+  else if(pin == 45) TCCR5A &= ~_BV(COM5B1);
+  else if(pin == 46) TCCR5A &= ~_BV(COM5A1);
 
 }
 
@@ -3573,13 +3573,13 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR0A &= ~COM0B1;
-  else if(pin == 5) TCCR3A &= ~COM3A1;
-  else if(pin == 6) TCCR4C &= ~COM4D1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR0A &= ~COM0A1;
-  else if(pin == 13) TCCR4A &= ~COM4A1;
+  else if(pin == 3) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 5) TCCR3A &= ~_BV(COM3A1);
+  else if(pin == 6) TCCR4C &= ~_BV(COM4D1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 13) TCCR4A &= ~_BV(COM4A1);
 
 }
 
@@ -3865,13 +3865,13 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR0A &= ~COM0B1;
-  else if(pin == 5) TCCR3A &= ~COM3A1;
-  else if(pin == 6) TCCR4C &= ~COM4D1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR0A &= ~COM0A1;
-  else if(pin == 13) TCCR4A &= ~COM4A1;
+  else if(pin == 3) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 5) TCCR3A &= ~_BV(COM3A1);
+  else if(pin == 6) TCCR4C &= ~_BV(COM4D1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 13) TCCR4A &= ~_BV(COM4A1);
 
 }
 
@@ -4157,13 +4157,13 @@ static inline void noAnalogWrite(uint8_t pin) {
   if(!__builtin_constant_p(pin)) {
     return; // noAnalogWrite is taken care of by digitalWrite() for variables
   }
-  else if(pin == 3) TCCR0A &= ~COM0B1;
-  else if(pin == 5) TCCR3A &= ~COM3A1;
-  else if(pin == 6) TCCR4C &= ~COM4D1;
-  else if(pin == 9) TCCR1A &= ~COM1A1;
-  else if(pin == 10) TCCR1A &= ~COM1B1;
-  else if(pin == 11) TCCR0A &= ~COM0A1;
-  else if(pin == 13) TCCR4A &= ~COM4A1;
+  else if(pin == 3) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 5) TCCR3A &= ~_BV(COM3A1);
+  else if(pin == 6) TCCR4C &= ~_BV(COM4D1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 13) TCCR4A &= ~_BV(COM4A1);
 
 }
 
