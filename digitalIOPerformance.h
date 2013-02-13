@@ -32,6 +32,7 @@
  *
  */
 
+#ifdef __AVR__
 #ifndef _DIGITALIO_PERFORMANCE
 #define _DIGITALIO_PERFORMANCE
 
@@ -4767,5 +4768,5 @@ static inline int digitalReadSafe(uint8_t pin) {
 
 #endif
 
-
+#endif
 #endif

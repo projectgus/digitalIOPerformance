@@ -213,6 +213,7 @@ HEADER_PREFIX = """ /*
  *
  */
 
+#ifdef __AVR__
 #ifndef _DIGITALIO_PERFORMANCE
 #define _DIGITALIO_PERFORMANCE
 
@@ -241,7 +242,7 @@ HEADER_SUFFIX = """
 
 #endif
 
-
+#endif
 #endif
 """
 
