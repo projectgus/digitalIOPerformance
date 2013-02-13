@@ -36,6 +36,7 @@
 #define _DIGITALIO_PERFORMANCE
 
 #include "Arduino.h"
+#include <util/atomic.h>
 
 
 /* Arduino board:
@@ -247,6 +248,48 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~COM2A1;
 
 }
+
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
 
 #endif
 
@@ -461,6 +504,48 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
+
 #endif
 
 
@@ -674,6 +759,48 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
+
 #endif
 
 
@@ -883,6 +1010,48 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2 &= ~COM21;
 
 }
+
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
 
 #endif
 
@@ -1097,6 +1266,48 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
+
 #endif
 
 
@@ -1309,6 +1520,48 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~COM2A1;
 
 }
+
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
 
 #endif
 
@@ -1932,6 +2185,48 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
+
 #endif
 
 
@@ -2145,6 +2440,48 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
+
 #endif
 
 
@@ -2357,6 +2694,48 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~COM2A1;
 
 }
+
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
 
 #endif
 
@@ -2651,6 +3030,48 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 13) TCCR4A &= ~COM4A1;
 
 }
+
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
 
 #endif
 
@@ -3274,6 +3695,48 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
+
 #endif
 
 
@@ -3567,6 +4030,48 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 13) TCCR4A &= ~COM4A1;
 
 }
+
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
 
 #endif
 
@@ -3862,6 +4367,48 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
+
 #endif
 
 
@@ -4155,6 +4702,48 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 13) TCCR4A &= ~COM4A1;
 
 }
+
+__attribute__((always_inline))
+static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    if(mode == INPUT) { // Don't let input pins stay in PWM mode
+      noAnalogWrite(pin);
+    }
+    pinModeFast(pin, mode);
+  }
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      noAnalogWrite(pin);
+      digitalWriteFast(pin, value);
+    }
+  }
+}
+
+__attribute__((always_inline))
+static inline int digitalReadSafe(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      return digitalReadFast(pin);
+    }
+  }
+}
+
 
 #endif
 
