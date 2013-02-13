@@ -4,18 +4,7 @@
  *
  * Automatically generated from the Arduino library setup (boards.txt & pins_arduino.h)
  *
- * Adds the following functions:
- *
- * digitalWriteFast() / digitalReadFast / pinModeFast -
- *
- * Versions of digitalWrite()/digitalRead/pinMode that compile down to a
- * single port register instruction if the pin number is known at compile
- * time (falls through to the slower versions if the pin number is a variable.)
- *
- * turnOffPWM() - Using digitalWriteFast() will not automatically turn off a
- * previous analogWrite() to that port, unlike digitalWrite(). If you are mixing
- * analogWrite() and digitalWriteFast() on a port, call this function before
- * calling digitalWriteFast().
+ * See the accompanying file README.md for documentation.
  *
  * ****
  *
