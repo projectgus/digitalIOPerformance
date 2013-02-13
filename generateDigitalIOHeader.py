@@ -157,17 +157,20 @@ def extract_portnames_pins(board):
     Run the preprocessor over this boards' pin header file to pull
     out port names and bitmasks.
     """
+    def extract_array(array_name):
+        """ Match a multiline C array with the given name (pretty clumsy.) """
+        content = re.search(array_name + ".+?\{(.+?)}", output, re.MULTILINE|re.DOTALL).group(1)
+        return [ e.strip() for e in content.split(",") if len(e.strip()) ]
+
     output = run_preprocessor(board)
-    digital_pin_to_port = re.search(r"digital_pin_to_port_PGM.+?\{(.+?)}",
-                                       output, re.MULTILINE|re.DOTALL).group(1)
-    digital_pin_to_bit_mask = re.search(r"digital_pin_to_bit_mask_PGM.+?\{(.+?)\}",
-                                           output, re.MULTILINE|re.DOTALL).group(1)
-    board["ports"] = [ e.strip() for e in digital_pin_to_port.split(",")
-                       if len(e.strip()) > 0 ]
+    board["ports"] = extract_array("digital_pin_to_port_PGM")
     # strip P prefix, ie PD becomes D
     board["ports"] = [ e[1] if e[0] == "P" else None for e in board["ports"] ]
-    board["bitmasks"] = [ e.strip() for e in digital_pin_to_bit_mask.split(",")
-                          if len(e.strip()) > 0 ]
+
+    board["bitmasks"] = extract_array("digital_pin_to_bit_mask_PGM")
+
+    pin_to_timer = extract_array("digital_pin_to_timer_PGM")
+    board["timers"] = [ p if p != "NOT_ON_TIMER" else None for p in pin_to_timer ]
 
     # do some sanity checks on the data we extracted
     if len(board["ports"]) != len(board["bitmasks"]):
@@ -250,6 +253,14 @@ static inline int digitalReadFast(uint8_t pin) {
   return LOW;
 }
 
+__attribute__((always_inline))
+static inline void noAnalogWrite(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return; // noAnalogWrite is taken care of by digitalWrite() for variables
+  }
+%(timer_clause)s
+}
+
 #endif
 
 """
@@ -267,6 +278,35 @@ PINMODE_TEMPLATE = """
 DIGITALREAD_TEMPLATE = """
   else if(pin == %(number)s) return PIN%(port)s & %(bitmask)s ? HIGH : LOW;
 """.strip("\n")
+
+TIMER_TEMPLATE = """
+  else if(pin == %(number)s) %(timer_reg)s &= ~%(timer_bit)s;
+""".strip("\n")
+
+# Lookup table from the timer specifications given in pins_arduino.h
+# to the actual timer register bits
+#
+# This is equivalent of the case statement in wiring_digital.c, so if that
+# ever changes this needs to change too. :(
+TIMER_LOOKUP = {
+		"TIMER1A": ("TCCR1A", "COM1A1"),
+		"TIMER1B": ("TCCR1A", "COM1B1"),
+		"TIMER2":  ("TCCR2", "COM21"),
+		"TIMER0A": ("TCCR0A", "COM0A1"),
+		"TIMER0B": ("TCCR0A", "COM0B1"),
+		"TIMER2A": ("TCCR2A", "COM2A1"),
+		"TIMER2B": ("TCCR2A", "COM2B1"),
+		"TIMER3A": ("TCCR3A", "COM3A1"),
+		"TIMER3B": ("TCCR3A", "COM3B1"),
+		"TIMER3C": ("TCCR3A", "COM3C1"),
+		"TIMER4A": ("TCCR4A", "COM4A1"),
+		"TIMER4B": ("TCCR4A", "COM4B1"),
+		"TIMER4C": ("TCCR4A", "COM4C1"),
+		"TIMER4D": ("TCCR4C", "COM4D1"),
+		"TIMER5A": ("TCCR5A", "COM5A1"),
+		"TIMER5B": ("TCCR5A", "COM5B1"),
+		"TIMER5C": ("TCCR5A", "COM5C1"),
+}
 
 def generate_header_file(boards, identifying_keys, output):
     """
@@ -290,12 +330,18 @@ def generate_header_file(boards, identifying_keys, output):
         digitalwrite_clause = ""
         digitalread_clause = ""
         pinmode_clause = ""
-        for number,port,bitmask in zip(range(len(board["ports"])),
-                                  board["ports"],
-                                  board["bitmasks"]):
-            digitalwrite_clause += DIGITALWRITE_TEMPLATE % locals() + "\n"
-            digitalread_clause += DIGITALREAD_TEMPLATE % locals() + "\n"
-            pinmode_clause += PINMODE_TEMPLATE % locals() + "\n"
+        timer_clause = ""
+        for number,port,bitmask,timer in zip(range(len(board["ports"])),
+                                             board["ports"],
+                                             board["bitmasks"],
+                                             board["timers"]):
+            if port is not None:
+                digitalwrite_clause += DIGITALWRITE_TEMPLATE % locals() + "\n"
+                digitalread_clause += DIGITALREAD_TEMPLATE % locals() + "\n"
+                pinmode_clause += PINMODE_TEMPLATE % locals() + "\n"
+                if timer is not None:
+                    timer_reg,timer_bit = TIMER_LOOKUP[timer]
+                    timer_clause += TIMER_TEMPLATE % locals() + "\n"
 
         output.write(BOARD_TEMPLATE % dict(locals(), **board))
     output.write(HEADER_SUFFIX);
