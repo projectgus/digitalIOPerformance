@@ -1,22 +1,22 @@
-=digitalIOPerformance.h=
+# digitalIOPerformance.h
 
 digitalIOPerformance.h is a header file that adds higher-performance
 digital I/O functions to Arduino programs:
 
-==digitalWriteFast() / digitalReadFast / pinModeFast==
+## digitalWriteFast() / digitalReadFast / pinModeFast
 
 Versions of digitalWrite()/digitalRead/pinMode that compile down to a
 single port register instruction if the pin number is known at compile
 time (falls through to the slower Arduino version if the pin number is a variable.)
 
-==turnOffPWM()==
+## turnOffPWM()
 Using digitalWriteFast() will not automatically turn off a
 previous analogWrite() to that port, unlike Arduino's digitalWrite().
 
 If you are mixing analogWrite() and digitalWriteFast() on a port, call
 this function before calling digitalWriteFast().
 
-=Status=
+# Status
 
 New, untested, hacky, work in progress. :)
 
@@ -28,7 +28,7 @@ Minimal testing done with Windows Arduino 1.0.3 (gcc 4.3) and my
 Ubuntu Arduino 1.0.3 (gcc 4.7.) Should work with any Arduino version
 above 1.0 (I think.)
 
-=Known Shortcomings=
+# Known Shortcomings
 
 * Not yet interrupt-safe, you'll need to disable/restore interrupts
   yourself if you need interrupt safety.
@@ -39,7 +39,7 @@ above 1.0 (I think.)
 
 * No ARM support, definitely won't work on the Arduino Due.
 
-=Internal Workings=
+# Internal Workings
 
 digitalIOPerformance.h is code generated automatically from an
 existing Arduino installation by the script generateDigitalIOHeader.py.
@@ -51,7 +51,7 @@ However, having code generation means it should be simple to update
 against future new boards like the Leonardo (assuming the file
 formats don't change much.)
 
-=Thanks=
+# Thanks
 
 Big thanks to the authors of digitalWriteFast - Paul Stoffregen, Bill
 Westfield, an John Raines. I wrote this instead of updating
