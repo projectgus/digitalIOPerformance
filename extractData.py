@@ -139,7 +139,6 @@ def merge_matching_boards(boards, identifying_keys):
     # Merge together any boards with identical keys (making composite names & ids)
     unique_boards = []
     for board in boards:
-        print key(board)
         found = False
         for unique in unique_boards:
             if key(unique) == key(board):
@@ -187,6 +186,12 @@ HEADER_PREFIX = """ /*
  * licensed under LGPL. Although as a header file it is not bound by the same usage
  * clauses as the library itself (see "3. Object Code Incorporating Material from
  * Library Header Files.)"
+ *
+ * Note that although the code generated functions below here look horrific,
+ * they're written to inline only very small subsets of themselves at compile
+ * time (they generate single port-register instructions when the parameters
+ * are constant.)
+ *
  */
 
 #ifndef _DIGITALIO_PERFORMANCE
