@@ -25,7 +25,7 @@ def extract_boards():
     with open(os.path.join(ARDUINO_PATH, "hardware/arduino/boards.txt")) as board_contents:
         boards = dict()
 
-        RE_BOARDENTRY = re.compile(r"^([a-z][^=]+)=(.+)$", re.MULTILINE)
+        RE_BOARDENTRY = re.compile(r"^([A-Za-z][^=]+)=(.+)$", re.MULTILINE)
 
         for full_key,value in re.findall(RE_BOARDENTRY, board_contents.read()):
             board = full_key.split(".")[0]
