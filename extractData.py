@@ -5,35 +5,50 @@ ARDUINO_PATH="/usr/share/arduino"
 
 import os, re, subprocess
 
-RE_BOARDENTRY = re.compile(r"^([a-z][^=]+)=(.+)$", re.MULTILINE)
+def main():
+    boards = extract_boards()
+    for board in boards:
+        add_variant_macros(board)
+    find_unambiguous_macros(boards)
+    identifying_keys = find_unique_macro_keys(boards)
+    boards = merge_matching_boards(boards, identifying_keys)
+    for board in boards:
+        extract_portnames_pins(board)
+    with open("digitalIOPerformance.h", "w") as output:
+        generate_header_file(boards, identifying_keys, output)
 
-boards = open(os.path.join(ARDUINO_PATH, "hardware/arduino/boards.txt"))
-models = dict()
-
-for full_key,value in re.findall(RE_BOARDENTRY, boards.read()):
-    model = full_key.split(".")[0]
-    key = ".".join(full_key.split(".")[1:])
-    if not model in models:
-        models[model] = { "id" : model }
-    models[model][key] = value
-
-models = list(models.values())
-
-mcus = set( m["build.mcu"] for m in models )
-variants = set( m["build.variant"] for m in models )
-
-def run_preprocessor(model, additional_args=[]):
+def extract_boards():
+    """ Parse the Arduino boards file and return a list of all the boards,
+    with each board as a dictionary containing all their board-specific
+    key-value pairs
     """
-    Run the preprocessor and return the contents of the processed file as a string
+    with open(os.path.join(ARDUINO_PATH, "hardware/arduino/boards.txt")) as board_contents:
+        boards = dict()
+
+        RE_BOARDENTRY = re.compile(r"^([a-z][^=]+)=(.+)$", re.MULTILINE)
+
+        for full_key,value in re.findall(RE_BOARDENTRY, board_contents.read()):
+            board = full_key.split(".")[0]
+            key = ".".join(full_key.split(".")[1:])
+            if not board in boards:
+                boards[board] = { "id" : board }
+            boards[board][key] = value
+
+    return list(boards.values())
+
+def run_preprocessor(board, additional_args=[]):
     """
-    source_path = model["pin_path"]
+    Run the C preprocessor over a particular board, and return
+    the contents of the processed file as a string
+    """
+    source_path = board["pin_path"]
     args = ["avr-gcc", "-DARDUINO_MAIN", "-E",
-            "-mmcu=%s" % model["build.mcu"],
-            "-DF_CPU=%s" % model["build.f_cpu"] ]
-    if "build.vid" in model:
-        args += [ "-DUSB_VID=%s" % model["build.vid" ] ]
-    if "build.pid" in model:
-        args += [ "-DUSB_PID=%s" % model["build.pid" ] ]
+            "-mmcu=%s" % board["build.mcu"],
+            "-DF_CPU=%s" % board["build.f_cpu"] ]
+    if "build.vid" in board:
+        args += [ "-DUSB_VID=%s" % board["build.vid" ] ]
+    if "build.pid" in board:
+        args += [ "-DUSB_PID=%s" % board["build.pid" ] ]
     proc = subprocess.Popen(args + additional_args + [ source_path ],
                             stdout=subprocess.PIPE)
     proc.wait()
@@ -41,92 +56,128 @@ def run_preprocessor(model, additional_args=[]):
         raise Error("Failed to run preprocessor")
     return proc.stdout.read()
 
-def add_variant_macros(model):
-    model["pin_path"] = os.path.join(ARDUINO_PATH, "hardware/arduino/variants/%s/pins_arduino.h" % (model["build.variant"]))
-    macros = run_preprocessor(model, ["-dM"])
+def add_variant_macros(board):
+    """
+    Run the pin_arduinos.h header for this board through the preprocessor,
+    extract all defined macros and attach them to the board dict under key
+    'macros'
+    """
+    board["pin_path"] = os.path.join(ARDUINO_PATH, "hardware/arduino/variants/%s/pins_arduino.h" % (board["build.variant"]))
+    macros = run_preprocessor(board, ["-dM"])
     macros = [ re.sub(r"^#define ", "", macro) for macro in macros.split("\n") ]
     macros = [ tuple(macro.split(" ", 1)) for macro in macros if " " in macro ]
-    model["macros"] = dict(macros)
+    board["macros"] = dict(macros)
 
-for model in models:
-    add_variant_macros(model)
+def find_unambiguous_macros(boards):
+    """
+    Trim the macros defined against any of the boards, to leave only those with
+    only numeric values (anything else is too tricky, especially with
+    token representation ambiguities.)
 
-# Trim the macros we care about to be only those with numeric universally values
-# (anything else is too tricky, especially with token representation ambiguities)
-ambiguous_macros = set()
-for model in models:
-    for key,value in model["macros"].items():
-        if not re.match(r"^-?0?x?[\dA-Fa-f]+L?$", value.strip()):
-            ambiguous_macros.add(key)
-for model in models:
-    for ambiguous in ambiguous_macros:
-        if ambiguous in model["macros"]:
-            del model["macros"][ambiguous]
-
-# Find unique identifiable macro values that distinguish each model from the others
-identifying_keys = set()
-for model in models:
-    duplicates = list( dup for dup in models if dup != model )
-    for dup in duplicates:
-        # skip anything that's already unique as per existing keys
-        identified = False
-        for key in identifying_keys:
-            identified = identified or model["macros"].get(key,"") != dup["macros"].get(key, "")
-        if identified:
-            continue
-
-        # find something unique about this duplicate
-        uniques = set(model["macros"].items()) ^ set(dup["macros"].items())
-        uniques = [ key for key,value in uniques ]
-        # find the least selective key in the uniques
-        def selectiveness(key):
-            return len([d for d in duplicates if ( d["macros"].get(key, "") == model["macros"].get(key, ""))])
-        uniques = sorted(uniques, key=selectiveness)
-        if len(uniques) > 0:
-            identifying_keys.add(uniques[0])
+    Modifies the board dict in-place.
+    """
+    ambiguous_macros = set()
+    # build list of ambiguous macros
+    for board in boards:
+        for key,value in board["macros"].items():
+            if not re.match(r"^-?0?x?[\dA-Fa-f]+L?$", value.strip()):
+                ambiguous_macros.add(key)
+    # trim the ambiguous macros from any of the boards
+    for board in boards:
+        for ambiguous in ambiguous_macros:
+            if ambiguous in board["macros"]:
+                del board["macros"][ambiguous]
 
 
-# Apply the key as a string to each model
-for model in models:
-    model["key"] = str([ model["macros"].get(key,"") for key in identifying_keys ])
+def find_unique_macro_keys(boards):
+    """
+    Go through each board and find a small subset of unique macro
+    values that distinguish each board from the others.
 
-# Merge together any models with identical keys (by name & id)
-unique_models = []
-for model in models:
-    found = False
-    for unique in unique_models:
-        if unique["key"] == model["key"]:
-            if model["build.variant"] != unique["build.variant"]:
-                raise RuntimeError("Ambiguous models %s / %s have matching variant! Can't distinguish reliably between them." % (model["id"], unique["id"]))
-            unique["id"] += " | " + model["id"]
-            unique["name"] += " | " + model["name"]
-            found = True
-    if not found:
-        unique_models += [ model ]
+    This allows us to generate a header file that can automatically
+    determine which board profile it's being compiled against, at compile
+    time.
 
-# Run the preprocessor over the pin header files to pull out port names and
-# bitmasks
-for model in models:
-    output = run_preprocessor(model)
+    Returns a set of macro names.
+    """
+    identifying_keys = set()
+    for board in boards:
+        duplicates = list( dup for dup in boards if dup != board )
+        for dup in duplicates:
+            # skip anything that's already unique as per existing keys
+            identified = False
+            for key in identifying_keys:
+                identified = identified or board["macros"].get(key,"") != dup["macros"].get(key, "")
+            if identified:
+                continue
+
+            # find something unique about this duplicate
+            uniques = set(board["macros"].items()) ^ set(dup["macros"].items())
+            uniques = [ key for key,value in uniques ]
+            # find the least selective key in the uniques
+            def selectiveness(key):
+                return len([d for d in duplicates if ( d["macros"].get(key, "") == board["macros"].get(key, ""))])
+            uniques = sorted(uniques, key=selectiveness)
+            if len(uniques) > 0:
+                identifying_keys.add(uniques[0])
+
+    return identifying_keys
+
+def merge_matching_boards(boards, identifying_keys):
+    """
+    Go through each board and merge together any that we can't unambiguously
+    identify by using the macros defined in identifying_keys.
+
+    We assume any matching boards will have matching 'variants' defined, otherwise
+    we throw an error.
+
+    Returns a new list of boards, with an ambiguously defined ones merged together.
+    """
+    def key(board):
+        return str([ board["macros"].get(key,"") for key in identifying_keys ])
+
+    # Merge together any boards with identical keys (making composite names & ids)
+    unique_boards = []
+    for board in boards:
+        print key(board)
+        found = False
+        for unique in unique_boards:
+            if key(unique) == key(board):
+                if board["build.variant"] != unique["build.variant"]:
+                    raise RuntimeError("Ambiguous boards %s / %s have matching variant! Can't distinguish reliably between them." % (board["id"], unique["id"]))
+                unique["id"] += " | " + board["id"]
+                unique["name"] += " | " + board["name"]
+                found = True
+        if not found:
+            unique_boards += [ board ]
+    return unique_boards
+
+
+def extract_portnames_pins(board):
+    """
+    Run the preprocessor over this boards' pin header file to pull
+    out port names and bitmasks.
+    """
+    output = run_preprocessor(board)
     digital_pin_to_port = re.search(r"digital_pin_to_port_PGM.+?\{(.+?)}",
                                        output, re.MULTILINE|re.DOTALL).group(1)
     digital_pin_to_bit_mask = re.search(r"digital_pin_to_bit_mask_PGM.+?\{(.+?)\}",
                                            output, re.MULTILINE|re.DOTALL).group(1)
-    model["ports"] = [ e.strip() for e in digital_pin_to_port.split(",")
+    board["ports"] = [ e.strip() for e in digital_pin_to_port.split(",")
                        if len(e.strip()) > 0 ]
     # strip P prefix, ie PD becomes D
-    model["ports"] = [ e[1] if e[0] == "P" else None for e in model["ports"] ]
-    model["bitmasks"] = [ e.strip() for e in digital_pin_to_bit_mask.split(",")
+    board["ports"] = [ e[1] if e[0] == "P" else None for e in board["ports"] ]
+    board["bitmasks"] = [ e.strip() for e in digital_pin_to_bit_mask.split(",")
                           if len(e.strip()) > 0 ]
-    # do some sanity checks
-    if len(model["ports"]) != len(model["bitmasks"]):
-        raise RuntimeError("Number of ports in %s doesn't match bitmask count - %d vs %d" % (model["id"], len(model["ports"]), len(model["bitmasks"])))
-    if len(model["ports"]) != int(model["macros"]["NUM_DIGITAL_PINS"]):
-        raise RuntimeError("Number of ports in %s doesn't match number of digital pins reported in header" % (model["id"], len(model["ports"]), model["macros"]["NUM_DIGITAL_PINS"]))
-    #print model["id"],model["ports"],model["bitmasks"]
+
+    # do some sanity checks on the data we extracted
+    if len(board["ports"]) != len(board["bitmasks"]):
+        raise RuntimeError("Number of ports in %s doesn't match bitmask count - %d vs %d" % (board["id"], len(board["ports"]), len(board["bitmasks"])))
+    if len(board["ports"]) != int(board["macros"]["NUM_DIGITAL_PINS"]):
+        raise RuntimeError("Number of ports in %s doesn't match number of digital pins reported in header" % (board["id"], len(board["ports"]), board["macros"]["NUM_DIGITAL_PINS"]))
 
 
-PREFIX = """ /*
+HEADER_PREFIX = """ /*
  *
  * Header for high performance Arduino Digital I/O
  *
@@ -143,9 +194,9 @@ PREFIX = """ /*
 
 """
 
-SUFFIX = """
+HEADER_SUFFIX = """
 
-#ifndef _DIGITALIO_MATCHED_MODEL
+#ifndef _DIGITALIO_MATCHED_BOARD
 #warning "This header's Arduino configuration heuristics couldn't match this board configuration. No fast I/O is available. The header may be out of date."
 
 #define pinModeFast pinMode
@@ -153,21 +204,21 @@ SUFFIX = """
 #define digitalReadFast digitalRead
 
 #endif
-#undef _DIGITALIO_MATCHED_MODEL
+#undef _DIGITALIO_MATCHED_BOARD
 #endif
 """
 
-MODEL_TEMPLATE = """
-/* Arduino model:
+BOARD_TEMPLATE = """
+/* Arduino board:
  *   %(id)s
  *   %(name)s
  *   MCU: %(build.mcu)s
  */
 #if %(ifdef_clause)s
-#ifdef _DIGITALIO_MATCHED_MODEL
-#error "This header's Arduino configuration heuristics have matched multiple models. The header may be out of date."
+#ifdef _DIGITALIO_MATCHED_BOARD
+#error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
-#define _DIGITALIO_MATCHED_MODEL
+#define _DIGITALIO_MATCHED_BOARD
 
 __attribute__((always_inline))
 static inline void pinModeFast(uint8_t pin, uint8_t mode) {
@@ -212,17 +263,20 @@ DIGITALREAD_TEMPLATE = """
   else if(pin == %(number)s) return PIN%(port)s & %(bitmask)s ? HIGH : LOW;
 """.strip("\n")
 
-with open("digitalIOPerformance.h", "w") as output:
-    output.write(PREFIX)
-    for model in models:
+def generate_header_file(boards, identifying_keys, output):
+    """
+    Write a header file with fast inlined methods for all the board types
+    """
+    output.write(HEADER_PREFIX)
+    for board in boards:
         # Work out the macro conditional
-        ifdef_clause = ["1"]
+        ifdef_clause = []
         for key in identifying_keys:
             # all the +0 nonsense here is to detect defined-but-empty macros
             # (Arduino-mk inserts them)
-            if key in model["macros"]:
+            if key in board["macros"]:
                 ifdef_clause.append("defined(%(key)s) && (%(key)s+0) == %(value)s" %
-                                    {"key": key, "value": model["macros"][key]})
+                                    {"key": key, "value": board["macros"][key]})
             else:
                 ifdef_clause.append("(!defined(%s) || !(%s+0))" % (key,key))
         ifdef_clause = " && ".join(ifdef_clause)
@@ -231,12 +285,16 @@ with open("digitalIOPerformance.h", "w") as output:
         digitalwrite_clause = ""
         digitalread_clause = ""
         pinmode_clause = ""
-        for number,port,bitmask in zip(range(len(model["ports"])),
-                                  model["ports"],
-                                  model["bitmasks"]):
+        for number,port,bitmask in zip(range(len(board["ports"])),
+                                  board["ports"],
+                                  board["bitmasks"]):
             digitalwrite_clause += DIGITALWRITE_TEMPLATE % locals() + "\n"
             digitalread_clause += DIGITALREAD_TEMPLATE % locals() + "\n"
             pinmode_clause += PINMODE_TEMPLATE % locals() + "\n"
 
-        output.write(MODEL_TEMPLATE % dict(locals(), **model))
-    output.write(SUFFIX);
+        output.write(BOARD_TEMPLATE % dict(locals(), **board))
+    output.write(HEADER_SUFFIX);
+
+
+if __name__ == "__main__":
+    main()
