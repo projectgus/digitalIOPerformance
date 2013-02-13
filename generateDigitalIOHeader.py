@@ -279,13 +279,16 @@ static inline void noAnalogWrite(uint8_t pin) {
 """
 
 DIGITALWRITE_TEMPLATE = """
-  else if(pin == %(number)s && value) PORT%(port)s |= %(bitmask)s;
+  else if(pin == %(number)s && value) PORT%(port)s  |= %(bitmask)s;
   else if(pin == %(number)s && !value) PORT%(port)s &= ~%(bitmask)s;
 """.strip("\n")
 
 PINMODE_TEMPLATE = """
-  else if(pin == %(number)s && mode) DDR%(port)s |= %(bitmask)s;
-  else if(pin == %(number)s && !mode) DDR%(port)s &= ~%(bitmask)s;
+  else if(pin == %(number)s && mode == INPUT) DDR%(port)s |= %(bitmask)s;
+  else if(pin == %(number)s && mode == INPUT_PULLUP) {
+    DDR%(port)s |= %(bitmask)s;
+    PORT%(port)s &= ~%(bitmask)s;
+  } else if(pin == %(number)s) DDR%(port)s &= ~%(bitmask)s;
 """.strip("\n")
 
 DIGITALREAD_TEMPLATE = """
