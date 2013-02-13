@@ -35,6 +35,8 @@
 #ifndef _DIGITALIO_PERFORMANCE
 #define _DIGITALIO_PERFORMANCE
 
+#include "Arduino.h"
+
 
 /* Arduino board:
  *   mini | nano | bt
@@ -2899,12 +2901,7 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 
 #ifndef _DIGITALIO_MATCHED_BOARD
-#warning "This header's Arduino configuration heuristics couldn't match this board configuration. No fast I/O is available. The header may be out of date."
-
-#define pinModeFast pinMode
-#define digitalWriteFast digitalWrite
-#define digitalReadFast digitalRead
-
+#error "This header's Arduino configuration heuristics couldn't match this board configuration. No fast I/O is available. The header may be out of date."
 #endif
 #undef _DIGITALIO_MATCHED_BOARD
 #endif
