@@ -42,4 +42,29 @@ static inline void noAnalogWrite(uint8_t pin) {
 %(timer_clause)s
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+%(ispwm_clause)s
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+%(direction_clause)s
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+%(output_clause)s
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+%(input_clause)s
+  return false;
+}
+
+
 #endif

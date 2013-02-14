@@ -195,7 +195,7 @@ def extract_portnames_pins(board):
 DIGITALWRITE_TEMPLATE = """
   else if(pin == %(number)s && value) PORT%(port)s  |= %(bitmask)s;
   else if(pin == %(number)s && !value) PORT%(port)s &= ~%(bitmask)s;
-""".strip("\n")
+""".lstrip("\n")
 
 PINMODE_TEMPLATE = """
   else if(pin == %(number)s && mode == INPUT) DDR%(port)s |= %(bitmask)s;
@@ -203,15 +203,25 @@ PINMODE_TEMPLATE = """
     DDR%(port)s |= %(bitmask)s;
     PORT%(port)s &= ~%(bitmask)s;
   } else if(pin == %(number)s) DDR%(port)s &= ~%(bitmask)s;
-""".strip("\n")
+""".lstrip("\n")
 
 DIGITALREAD_TEMPLATE = """
   else if(pin == %(number)s) return PIN%(port)s & %(bitmask)s ? HIGH : LOW;
-""".strip("\n")
+""".lstrip("\n")
 
 TIMER_TEMPLATE = """
   else if(pin == %(number)s) %(timer_reg)s &= ~_BV(%(timer_bit)s);
-""".strip("\n")
+""".lstrip("\n")
+
+ISPWM_TEMPLATE = """
+  if(pin == %(number)s)
+    return true;
+""".lstrip("\n")
+
+PORT_TEST_TEMPLATE = """
+  if(pin == %(number)s)
+    return _SFR_IO_REG_P(%(port)s);
+""".lstrip("\n")
 
 # Lookup table from the timer specifications given in pins_arduino.h
 # to the actual timer register bits
@@ -264,17 +274,28 @@ def generate_header_file(boards, identifying_keys, output):
         digitalread_clause = ""
         pinmode_clause = ""
         timer_clause = ""
+        ispwm_clause = ""
+        direction_clause = ""
+        output_clause = ""
+        input_clause = ""
         for number,port,bitmask,timer in zip(range(len(board["ports"])),
                                              board["ports"],
                                              board["bitmasks"],
                                              board["timers"]):
             if port is not None:
-                digitalwrite_clause += DIGITALWRITE_TEMPLATE % locals() + "\n"
-                digitalread_clause += DIGITALREAD_TEMPLATE % locals() + "\n"
-                pinmode_clause += PINMODE_TEMPLATE % locals() + "\n"
+                digitalwrite_clause += DIGITALWRITE_TEMPLATE % locals()
+                digitalread_clause += DIGITALREAD_TEMPLATE % locals()
+                pinmode_clause += PINMODE_TEMPLATE % locals()
                 if timer is not None:
                     timer_reg,timer_bit = TIMER_LOOKUP[timer]
-                    timer_clause += TIMER_TEMPLATE % locals() + "\n"
+                    timer_clause += TIMER_TEMPLATE % locals()
+                    ispwm_clause += ISPWM_TEMPLATE % locals()
+                direction_clause += PORT_TEST_TEMPLATE % {"number":number,
+                                                          "port":"DDR"+port}
+                output_clause += PORT_TEST_TEMPLATE % {"number":number,
+                                                       "port":"PORT"+port}
+                input_clause += PORT_TEST_TEMPLATE % {"number":number,
+                                                       "port":"PIN"+port}
 
         output.write(BOARD_TEMPLATE % dict(locals(), **board))
     with open("components/footer.cpp") as footer:

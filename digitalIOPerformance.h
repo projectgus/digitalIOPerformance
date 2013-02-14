@@ -34,17 +34,55 @@ inline static void digitalWriteFast(uint8_t pin, uint8_t value);
 inline static int digitalReadFast(uint8_t pin);
 inline static void noAnalogWrite(uint8_t pin);
 
+// These few per-board functions are designed for internal use, but
+// you can call them yourself if you want.
+inline static bool _isPWMPin(uint8_t pin);
+inline static bool _directionIsAtomic(uint8_t pin);
+inline static bool _outputIsAtomic(uint8_t pin);
+inline static bool _inputIsAtomic(uint8_t pin);
+
+#ifdef DIGITALIO_NO_INTERRUPT_SAFETY
+#define DIGITALIO_NO_INTERRUPT_SAFETY 1
+#else
+#define DIGITALIO_NO_INTERRUPT_SAFETY 0
+#endif
+
+#ifdef DIGITALIO_NO_MIX_ANALOGWRITE
+#define DIGITALIO_NO_MIX_ANALOGWRITE 1
+#else
+#define DIGITALIO_NO_MIX_ANALOGWRITE 0
+#endif
+
+// All the variables & conditionals in these functions should evaluate at
+// compile time not run time...
+
 __attribute__((always_inline))
 static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
   if(!__builtin_constant_p(pin)) {
     pinMode(pin, mode);
   }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
+  else {
+    const bool need_noanalogwrite = (mode == INPUT || mode == INPUT_PULLUP)
+      && !DIGITALIO_NO_MIX_ANALOGWRITE
+      && _isPWMPin(pin);
+    const bool write_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
+      || (mode == OUTPUT && _directionIsAtomic(pin))
+      || (mode == INPUT && _directionIsAtomic(pin) && !need_noanalogwrite);
+    if(write_is_atomic) {
+      if(need_noanalogwrite) { // Don't let input pins stay in PWM mode
+        noAnalogWrite(pin);
+      }
+      pinModeFast(pin, mode);
     }
-    pinModeFast(pin, mode);
+    else {
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+      {
+        if(need_noanalogwrite) { // Don't let input pins stay in PWM mode
+          noAnalogWrite(pin);
+        }
+        pinModeFast(pin, mode);
+      }
+    }
   }
 }
 
@@ -54,10 +92,22 @@ static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
     digitalWrite(pin, value);
   }
   else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
+    const bool need_noanalogwrite = !DIGITALIO_NO_MIX_ANALOGWRITE
+      && _isPWMPin(pin);
+    const bool write_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
+      || (_outputIsAtomic(pin) && !need_noanalogwrite);
+    if(write_is_atomic) {
+      if(need_noanalogwrite)
+        noAnalogWrite(pin);
       digitalWriteFast(pin, value);
+    }
+    else {
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+      {
+        if(need_noanalogwrite)
+          noAnalogWrite(pin);
+        digitalWriteFast(pin, value);
+      }
     }
   }
 }
@@ -68,9 +118,16 @@ static inline int digitalReadSafe(uint8_t pin) {
     return digitalRead(pin);
   }
   else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
+    const bool read_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
+      || _inputIsAtomic(pin);
+    if(read_is_atomic) {
       return digitalReadFast(pin);
+    }
+    else {
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+      {
+        return digitalReadFast(pin);
+      }
     }
   }
 }
@@ -285,6 +342,163 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
+
 #endif
 /* Arduino board:
  *   pro | lilypad
@@ -495,6 +709,163 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
+
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
 
 #endif
 /* Arduino board:
@@ -707,6 +1078,163 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
+
 #endif
 /* Arduino board:
  *   atmega8
@@ -914,6 +1442,157 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2 &= ~_BV(COM21);
 
 }
+
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
 
 #endif
 /* Arduino board:
@@ -1126,6 +1805,163 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
+
 #endif
 /* Arduino board:
  *   fio
@@ -1336,6 +2172,163 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
+
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
 
 #endif
 /* Arduino board:
@@ -1957,6 +2950,481 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 2)
+    return true;
+  if(pin == 3)
+    return true;
+  if(pin == 4)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 7)
+    return true;
+  if(pin == 8)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+  if(pin == 12)
+    return true;
+  if(pin == 13)
+    return true;
+  if(pin == 44)
+    return true;
+  if(pin == 45)
+    return true;
+  if(pin == 46)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRG);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRJ);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRJ);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 20)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 21)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 22)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 23)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 24)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 25)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 26)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 27)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 28)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 29)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 30)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 31)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 32)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 33)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 34)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 35)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 36)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 37)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 38)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 39)
+    return _SFR_IO_REG_P(DDRG);
+  if(pin == 40)
+    return _SFR_IO_REG_P(DDRG);
+  if(pin == 41)
+    return _SFR_IO_REG_P(DDRG);
+  if(pin == 42)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 43)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 44)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 45)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 46)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 47)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 48)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 49)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 50)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 51)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 52)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 53)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 54)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 55)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 56)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 57)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 58)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 59)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 60)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 61)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 62)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 63)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 64)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 65)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 66)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 67)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 68)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 69)
+    return _SFR_IO_REG_P(DDRK);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTG);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTJ);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTJ);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 30)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 31)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 32)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 33)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 34)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 35)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 36)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 37)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 38)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 39)
+    return _SFR_IO_REG_P(PORTG);
+  if(pin == 40)
+    return _SFR_IO_REG_P(PORTG);
+  if(pin == 41)
+    return _SFR_IO_REG_P(PORTG);
+  if(pin == 42)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 43)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 44)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 45)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 46)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 47)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 48)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 49)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 50)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 51)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 52)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 53)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 54)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 55)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 56)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 57)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 58)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 59)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 60)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 61)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 62)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 63)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 64)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 65)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 66)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 67)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 68)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 69)
+    return _SFR_IO_REG_P(PORTK);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PING);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINJ);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINJ);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 30)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 31)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 32)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 33)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 34)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 35)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 36)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 37)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 38)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 39)
+    return _SFR_IO_REG_P(PING);
+  if(pin == 40)
+    return _SFR_IO_REG_P(PING);
+  if(pin == 41)
+    return _SFR_IO_REG_P(PING);
+  if(pin == 42)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 43)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 44)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 45)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 46)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 47)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 48)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 49)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 50)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 51)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 52)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 53)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 54)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 55)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 56)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 57)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 58)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 59)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 60)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 61)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 62)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 63)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 64)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 65)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 66)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 67)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 68)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 69)
+    return _SFR_IO_REG_P(PINK);
+
+  return false;
+}
+
+
 #endif
 /* Arduino board:
  *   pro5v328 | atmega328 | ethernet | uno
@@ -2168,6 +3636,163 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
+
 #endif
 /* Arduino board:
  *   bt328 | nano328 | mini328
@@ -2378,6 +4003,163 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
 
 }
+
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
 
 #endif
 /* Arduino board:
@@ -2670,6 +4452,225 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 13) TCCR4A &= ~_BV(COM4A1);
 
 }
+
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+  if(pin == 13)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 25)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 26)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(DDRD);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PORTD);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PIND);
+
+  return false;
+}
+
 
 #endif
 /* Arduino board:
@@ -3291,6 +5292,481 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 2)
+    return true;
+  if(pin == 3)
+    return true;
+  if(pin == 4)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 7)
+    return true;
+  if(pin == 8)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+  if(pin == 12)
+    return true;
+  if(pin == 13)
+    return true;
+  if(pin == 44)
+    return true;
+  if(pin == 45)
+    return true;
+  if(pin == 46)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRG);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRJ);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRJ);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRH);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 20)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 21)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 22)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 23)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 24)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 25)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 26)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 27)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 28)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 29)
+    return _SFR_IO_REG_P(DDRA);
+  if(pin == 30)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 31)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 32)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 33)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 34)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 35)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 36)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 37)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 38)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 39)
+    return _SFR_IO_REG_P(DDRG);
+  if(pin == 40)
+    return _SFR_IO_REG_P(DDRG);
+  if(pin == 41)
+    return _SFR_IO_REG_P(DDRG);
+  if(pin == 42)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 43)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 44)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 45)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 46)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 47)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 48)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 49)
+    return _SFR_IO_REG_P(DDRL);
+  if(pin == 50)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 51)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 52)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 53)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 54)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 55)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 56)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 57)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 58)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 59)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 60)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 61)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 62)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 63)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 64)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 65)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 66)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 67)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 68)
+    return _SFR_IO_REG_P(DDRK);
+  if(pin == 69)
+    return _SFR_IO_REG_P(DDRK);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTG);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTJ);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTJ);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTH);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PORTA);
+  if(pin == 30)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 31)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 32)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 33)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 34)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 35)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 36)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 37)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 38)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 39)
+    return _SFR_IO_REG_P(PORTG);
+  if(pin == 40)
+    return _SFR_IO_REG_P(PORTG);
+  if(pin == 41)
+    return _SFR_IO_REG_P(PORTG);
+  if(pin == 42)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 43)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 44)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 45)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 46)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 47)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 48)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 49)
+    return _SFR_IO_REG_P(PORTL);
+  if(pin == 50)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 51)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 52)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 53)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 54)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 55)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 56)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 57)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 58)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 59)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 60)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 61)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 62)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 63)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 64)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 65)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 66)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 67)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 68)
+    return _SFR_IO_REG_P(PORTK);
+  if(pin == 69)
+    return _SFR_IO_REG_P(PORTK);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PING);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINJ);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINJ);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINH);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PINA);
+  if(pin == 30)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 31)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 32)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 33)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 34)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 35)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 36)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 37)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 38)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 39)
+    return _SFR_IO_REG_P(PING);
+  if(pin == 40)
+    return _SFR_IO_REG_P(PING);
+  if(pin == 41)
+    return _SFR_IO_REG_P(PING);
+  if(pin == 42)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 43)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 44)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 45)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 46)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 47)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 48)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 49)
+    return _SFR_IO_REG_P(PINL);
+  if(pin == 50)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 51)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 52)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 53)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 54)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 55)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 56)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 57)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 58)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 59)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 60)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 61)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 62)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 63)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 64)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 65)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 66)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 67)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 68)
+    return _SFR_IO_REG_P(PINK);
+  if(pin == 69)
+    return _SFR_IO_REG_P(PINK);
+
+  return false;
+}
+
+
 #endif
 /* Arduino board:
  *   LilyPadUSB
@@ -3582,6 +6058,225 @@ static inline void noAnalogWrite(uint8_t pin) {
   else if(pin == 13) TCCR4A &= ~_BV(COM4A1);
 
 }
+
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+  if(pin == 13)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 25)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 26)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(DDRD);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PORTD);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PIND);
+
+  return false;
+}
+
 
 #endif
 /* Arduino board:
@@ -3875,6 +6570,225 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+  if(pin == 13)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 25)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 26)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(DDRD);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PORTD);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PIND);
+
+  return false;
+}
+
+
 #endif
 /* Arduino board:
  *   leonardo
@@ -4167,6 +7081,225 @@ static inline void noAnalogWrite(uint8_t pin) {
 
 }
 
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+  if(pin == 13)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(DDRF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 25)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 26)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(DDRD);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PORTF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PORTD);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PINE);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 20)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 21)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 22)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 23)
+    return _SFR_IO_REG_P(PINF);
+  if(pin == 24)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 25)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 26)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 27)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 28)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 29)
+    return _SFR_IO_REG_P(PIND);
+
+  return false;
+}
+
+
 #endif
 #ifndef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics couldn't match this board configuration. No fast I/O is available. The header may be out of date."
@@ -4174,18 +7307,10 @@ static inline void noAnalogWrite(uint8_t pin) {
 #undef _DIGITALIO_MATCHED_BOARD
 
 #ifndef DIGITALIO_MANUAL
-#ifdef DIGITALIO_NO_INTERRUPTS
-#define digitalWrite digitalWriteFast
-#define digitalRead digitalReadFast
-#define pinMode pinModeFast
-#else
 #define digitalWrite digitalWriteSafe
 #define digitalRead digitalReadSafe
 #define pinMode pinModeSafe
 #endif
 
 #endif
-
 #endif
-#endif
-

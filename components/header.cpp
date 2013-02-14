@@ -34,17 +34,55 @@ inline static void digitalWriteFast(uint8_t pin, uint8_t value);
 inline static int digitalReadFast(uint8_t pin);
 inline static void noAnalogWrite(uint8_t pin);
 
+// These few per-board functions are designed for internal use, but
+// you can call them yourself if you want.
+inline static bool _isPWMPin(uint8_t pin);
+inline static bool _directionIsAtomic(uint8_t pin);
+inline static bool _outputIsAtomic(uint8_t pin);
+inline static bool _inputIsAtomic(uint8_t pin);
+
+#ifdef DIGITALIO_NO_INTERRUPT_SAFETY
+#define DIGITALIO_NO_INTERRUPT_SAFETY 1
+#else
+#define DIGITALIO_NO_INTERRUPT_SAFETY 0
+#endif
+
+#ifdef DIGITALIO_NO_MIX_ANALOGWRITE
+#define DIGITALIO_NO_MIX_ANALOGWRITE 1
+#else
+#define DIGITALIO_NO_MIX_ANALOGWRITE 0
+#endif
+
+// All the variables & conditionals in these functions should evaluate at
+// compile time not run time...
+
 __attribute__((always_inline))
 static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
   if(!__builtin_constant_p(pin)) {
     pinMode(pin, mode);
   }
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    if(mode == INPUT) { // Don't let input pins stay in PWM mode
-      noAnalogWrite(pin);
+  else {
+    const bool need_noanalogwrite = (mode == INPUT || mode == INPUT_PULLUP)
+      && !DIGITALIO_NO_MIX_ANALOGWRITE
+      && _isPWMPin(pin);
+    const bool write_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
+      || (mode == OUTPUT && _directionIsAtomic(pin))
+      || (mode == INPUT && _directionIsAtomic(pin) && !need_noanalogwrite);
+    if(write_is_atomic) {
+      if(need_noanalogwrite) { // Don't let input pins stay in PWM mode
+        noAnalogWrite(pin);
+      }
+      pinModeFast(pin, mode);
     }
-    pinModeFast(pin, mode);
+    else {
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+      {
+        if(need_noanalogwrite) { // Don't let input pins stay in PWM mode
+          noAnalogWrite(pin);
+        }
+        pinModeFast(pin, mode);
+      }
+    }
   }
 }
 
@@ -54,10 +92,22 @@ static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
     digitalWrite(pin, value);
   }
   else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
-      noAnalogWrite(pin);
+    const bool need_noanalogwrite = !DIGITALIO_NO_MIX_ANALOGWRITE
+      && _isPWMPin(pin);
+    const bool write_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
+      || (_outputIsAtomic(pin) && !need_noanalogwrite);
+    if(write_is_atomic) {
+      if(need_noanalogwrite)
+        noAnalogWrite(pin);
       digitalWriteFast(pin, value);
+    }
+    else {
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+      {
+        if(need_noanalogwrite)
+          noAnalogWrite(pin);
+        digitalWriteFast(pin, value);
+      }
     }
   }
 }
@@ -68,9 +118,16 @@ static inline int digitalReadSafe(uint8_t pin) {
     return digitalRead(pin);
   }
   else {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-    {
+    const bool read_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
+      || _inputIsAtomic(pin);
+    if(read_is_atomic) {
       return digitalReadFast(pin);
+    }
+    else {
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+      {
+        return digitalReadFast(pin);
+      }
     }
   }
 }
