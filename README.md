@@ -36,9 +36,9 @@ Not the case where the pin number isn't known at compile time:
        digitalWrite(my_pin, LOW); // <-- same speed as normal Arduino
     }
 
-## Option: Even more performance on PWM Enabled pins
+## Option: More performance, smaller compiled size, on PWM Enabled pins
 
-The Arduino's digitalWrite & pinMode functions deal with the
+The Arduino's digital I/O functions deal with the
 possibility that a pin is used for PWM output with
 [analogWrite()](http://arduino.cc/en/Tutorial/PWM), and then the same
 pin gets used again later for normal digital output with
@@ -48,16 +48,20 @@ digitalWrite(). Something like this:
     // ... do some stuff
     digitalWrite(MY_PIN, LOW);
 
-If you never mix analogWrite and digitalWrite on the same pin, you can
+If you never mix analogWrite and digitalRead/Write on the same pin, you can
 boost performance on PWM-enabled pins (making them equal with
 non-PWM-enabled pins) by adding a second line above the first:
 
     #define DIGITALIO_NO_MIX_ANALOGWRITE
     #include "digitalIOPerformance.h
 
-... if you still want to mix analogWrite() and digitalWrite() on the
-same pin, but also use DIGITALIO_NO_MIX_ANALOGWRITE, then you can use
-the noAnalogWrite() function in between to turn off the PWM output:
+Digital read & write performance will be higher, and the compiled
+sketch size will be smaller.
+
+... if you still want to mix analogWrite() and
+digitalRead/digitalWrite() on the same pin, but also use
+DIGITALIO_NO_MIX_ANALOGWRITE, then you can use the noAnalogWrite()
+function in between to turn off the PWM output:
 
     analogWrite(MY_PIN, 120);
     // ... do some stuff
@@ -69,20 +73,17 @@ the noAnalogWrite() function in between to turn off the PWM output:
 Under some circumstances the Arduino digital functions have to protect
 against [interrupts](http://www.uchobby.com/index.php/2007/11/24/arduino-interrupts/) occuring while an I/O read or write is in progress. This can cause things to get out of sync if an I/O operation takes more than a single instruction to process ("interrupt unsafe".)
 
-When using digitalIOPerformance, many writes only take one instruction anyway, so they are naturally "interrupt safe". However some cases have to be made "interrupt safe":
-
-* Writing to PWM-capable pins (only if DIGITALIO_NO_MIX_ANALOGWRITE is
-  not specified.)
+When using digitalIOPerformance, most writes only take one instruction anyway, so they are naturally "interrupt safe". However some cases have to be made "interrupt safe":
 
 * Writing to certain pins on Arduino Mega models.
 
 * Setting pinMode() to INPUT_PULLUP.
 
-By default, "digitalIOPerformance" makes these cases interrupt case,
+By default, "digitalIOPerformance" makes these cases interrupt safe,
 in order to keep them as safe as the built-in Arduino
 versions. However if your Arduino sketch doesn't use interrupts, or
 you don't care about interrupt safety for digital I/O, then you can
-add another line to get even faster digital I/O:
+add another line to get faster digital I/O on them:
 
     #define DIGITALIO_NO_INTERRUPT_SAFETY
     #include "digitalIOPerformance.h
@@ -118,9 +119,8 @@ They are also just as safe as the built-in Arduino versions - they're
 interrupt safe, and they disable any previous analogWrite() calls.
 
 When you include the library, these functions automatically replace
-the built-in digitalWrite, digitalRead & pinMode functions. If you
-don't want this to happen, define DIGITALIO_MANUAL before including
-(as shown above.)
+the built-in digitalWrite & pinMode functions. If you don't want this
+to happen, define DIGITALIO_MANUAL before including (as shown above.)
 
 
 ## digitalWriteFast / digitalReadFast / pinModeFast
@@ -138,7 +138,6 @@ library thus:
     #define DIGITALIO_NO_INTERRUPT_SAFETY
     #define DIGITALIO_NO_MIX_ANALOGWRITE
     #include "digitalIOPerformance.h
-
 
 ## noAnalogWrite
 

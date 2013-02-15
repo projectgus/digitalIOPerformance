@@ -62,24 +62,19 @@ static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
     pinMode(pin, mode);
   }
   else {
-    const bool need_noanalogwrite = (mode == INPUT || mode == INPUT_PULLUP)
-      && !DIGITALIO_NO_MIX_ANALOGWRITE
-      && _isPWMPin(pin);
+    if((mode == INPUT || mode == INPUT_PULLUP) && !DIGITALIO_NO_MIX_ANALOGWRITE)
+      noAnalogWrite(pin);
+
     const bool write_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
-      || (mode == OUTPUT && _directionIsAtomic(pin))
-      || (mode == INPUT && _directionIsAtomic(pin) && !need_noanalogwrite);
+      || (__builtin_constant_p(mode)
+          && mode != INPUT_PULLUP
+          && _directionIsAtomic(pin));
     if(write_is_atomic) {
-      if(need_noanalogwrite) { // Don't let input pins stay in PWM mode
-        noAnalogWrite(pin);
-      }
       pinModeFast(pin, mode);
     }
     else {
       ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
       {
-        if(need_noanalogwrite) { // Don't let input pins stay in PWM mode
-          noAnalogWrite(pin);
-        }
         pinModeFast(pin, mode);
       }
     }
@@ -92,20 +87,15 @@ static inline void digitalWriteSafe(uint8_t pin, uint8_t value) {
     digitalWrite(pin, value);
   }
   else {
-    const bool need_noanalogwrite = !DIGITALIO_NO_MIX_ANALOGWRITE
-      && _isPWMPin(pin);
-    const bool write_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
-      || (_outputIsAtomic(pin) && !need_noanalogwrite);
-    if(write_is_atomic) {
-      if(need_noanalogwrite)
-        noAnalogWrite(pin);
+    if(!DIGITALIO_NO_MIX_ANALOGWRITE)
+      noAnalogWrite(pin);
+
+    if(DIGITALIO_NO_INTERRUPT_SAFETY || _outputIsAtomic(pin)) {
       digitalWriteFast(pin, value);
     }
     else {
       ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
       {
-        if(need_noanalogwrite)
-          noAnalogWrite(pin);
         digitalWriteFast(pin, value);
       }
     }
@@ -118,17 +108,9 @@ static inline int digitalReadSafe(uint8_t pin) {
     return digitalRead(pin);
   }
   else {
-    const bool read_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
-      || _inputIsAtomic(pin);
-    if(read_is_atomic) {
-      return digitalReadFast(pin);
-    }
-    else {
-      ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-      {
-        return digitalReadFast(pin);
-      }
-    }
+    if(!DIGITALIO_NO_MIX_ANALOGWRITE)
+      noAnalogWrite(pin);
+    return digitalReadFast(pin);
   }
 }
 
