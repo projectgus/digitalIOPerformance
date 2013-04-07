@@ -198,11 +198,13 @@ DIGITALWRITE_TEMPLATE = """
 """.lstrip("\n")
 
 PINMODE_TEMPLATE = """
-  else if(pin == %(number)s && mode == INPUT) DDR%(port)s |= %(bitmask)s;
-  else if(pin == %(number)s && mode == INPUT_PULLUP) {
-    DDR%(port)s |= %(bitmask)s;
+  else if(pin == %(number)s && mode == INPUT) {
+    DDR%(port)s &= ~%(bitmask)s;
     PORT%(port)s &= ~%(bitmask)s;
-  } else if(pin == %(number)s) DDR%(port)s &= ~%(bitmask)s;
+  } else if(pin == %(number)s && mode == INPUT_PULLUP) {
+    DDR%(port)s &= ~%(bitmask)s;
+    PORT%(port)s |= %(bitmask)s;
+  } else if(pin == %(number)s) DDR%(port)s |= %(bitmask)s;
 """.lstrip("\n")
 
 DIGITALREAD_TEMPLATE = """
