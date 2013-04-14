@@ -67,7 +67,7 @@ static inline void pinModeSafe(uint8_t pin, uint8_t mode) {
 
     const bool write_is_atomic = DIGITALIO_NO_INTERRUPT_SAFETY
       || (__builtin_constant_p(mode)
-          && mode != INPUT_PULLUP
+          && mode == OUTPUT
           && _directionIsAtomic(pin));
     if(write_is_atomic) {
       pinModeFast(pin, mode);
