@@ -105,6 +105,24 @@ well:
 You can still use the functions in the library if you call them by
 their original names (given below.)
 
+# Libraries
+
+"digitalIOPerformance.h" has to be included into each separate
+compilation unit (ie each .ino and .cpp file) which is compiled
+by the gcc compiler invoked by Arduino.
+
+This means that if you want it to apply to libraries you #include
+from your Sketch, then you'll have to add it to any of the .cpp
+files that are part of that library. Because those files are compiled
+independently from the main sketch.
+
+(This isn't true for .h files in the library, that might get included
+directly into the sketch.)
+
+Bear in mind the same limitations about "pin number must be known at
+compile time" apply.
+
+
 # Functions Defined
 
 These functions are defined by the library:
