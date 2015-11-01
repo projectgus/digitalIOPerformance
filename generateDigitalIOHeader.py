@@ -1,4 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/python2
+# -*- coding: utf-8 -*-
+
 """
 Code generation script to build digitalIOPerformance.h from the Arduino
 boards.txt & pins_arduino.h files.
@@ -14,15 +16,28 @@ General Public License, version 2 or above.
 
 """
 
-# TODO: command line options
-ARDUINO_PATH="/usr/share/arduino"
+import os, sys, re, subprocess, glob
 
-import os, re, subprocess
+# TODO: command line options
+ARDUINO_PATH = sorted(glob.glob(os.path.expanduser("~") + "/.arduino15/packages/arduino/hardware/avr/*"))[-1]
+MENU_KEY = 'menu.cpu'
+
+
+class PreprocessorError(Exception):
+    pass
+
 
 def main():
-    boards = extract_boards()
-    for board in boards:
-        add_variant_macros(board)
+    boards = []
+    for board in extract_boards():
+        print "Processing", board['id']
+        try:
+            add_variant_macros(board)
+            boards.append(board)
+        except PreprocessorError as exc:
+            print "No support for board", board['id'], "- can't add_variant_macros, sorry..."
+            print "\t%s" % exc
+
     find_unambiguous_macros(boards)
     identifying_keys = find_unique_macro_keys(boards)
     boards = merge_matching_boards(boards, identifying_keys)
@@ -31,31 +46,72 @@ def main():
         try:
             extract_portnames_pins(board)
             outboards.append(board)
-        except:
-            print "Failed to extract portnames and pins for", board['id'], "skipping"
-            continue
+        except RuntimeError as exc:
+            print "No support for board", board['id'], "- can't extract_portnames_pins, sorry..."
+            print "\t%s" % exc
 
     with open("digitalIOPerformance.h", "w") as output:
         generate_header_file(outboards, identifying_keys, output)
+
+def expand_board(board):
+    """Expand a board into subboards"""
+    common = {}
+    sub_boards = {}
+    for key, value in board.iteritems():
+        if key == 'id':
+            continue
+        if key.startswith(MENU_KEY + '.'):
+            path = key.split('.', 3)
+            if len(path) == 3:
+                path.append('name')
+            sub_id = board['id'] + '/' + path[2]
+            if sub_id not in sub_boards:
+                sub_boards[sub_id] = {'id': sub_id}
+            sub_boards[sub_id][path[3]] = value
+        else:
+            common[key] = value
+    if 'build.mcu' in common:
+        del common['build.mcu']
+    for sub_board in sub_boards.itervalues():
+        name = sub_board['name']
+        sub_board.update(common)
+        sub_board['name'] = sub_board['name'] + '/' + name
+
+    return sub_boards.values()
 
 def extract_boards():
     """ Parse the Arduino boards file and return a list of all the boards,
     with each board as a dictionary containing all their board-specific
     key-value pairs
     """
-    with open(os.path.join(ARDUINO_PATH, "hardware/arduino/boards.txt")) as board_contents:
-        boards = dict()
-
-        RE_BOARDENTRY = re.compile(r"^([A-Za-z][^=]+)=(.+)$", re.MULTILINE)
-
-        for full_key,value in re.findall(RE_BOARDENTRY, board_contents.read()):
-            board = full_key.split(".")[0]
-            key = ".".join(full_key.split(".")[1:])
-            if not board in boards:
-                boards[board] = { "id" : board }
-            boards[board][key] = value
-
-    return list(boards.values())
+    data = [i for i in open(os.path.join(ARDUINO_PATH, "boards.txt"), 'rb').readlines()
+            if not i.startswith('#') and '=' in i]
+    boards = {}
+    for line in data:
+        key, value = line.strip().split('=', 1)
+        if key == MENU_KEY:
+            if value != 'Processor':
+                raise RuntimeError("Unsupported menu by %r!" % value)
+            continue
+        board_id, path = key.split('.', 1)
+        if board_id not in boards:
+            boards[board_id] = {'id': board_id}
+        board = boards[board_id]
+        assert path not in board
+        board[path] = value
+    xboards = []
+    for board_id in sorted(boards):
+        board = boards[board_id]
+        has_sub = False
+        for key in board:
+            if key.startswith(MENU_KEY + '.'):
+                has_sub = True
+                break
+        if not has_sub:
+            xboards.append(board)
+        else:
+            xboards.extend(expand_board(board))
+    return xboards
 
 def run_preprocessor(board, additional_args=[]):
     """
@@ -70,11 +126,15 @@ def run_preprocessor(board, additional_args=[]):
         args += [ "-DUSB_VID=%s" % board["build.vid" ] ]
     if "build.pid" in board:
         args += [ "-DUSB_PID=%s" % board["build.pid" ] ]
-    proc = subprocess.Popen(args + additional_args + [ source_path ],
-                            stdout=subprocess.PIPE)
-    stdout, _ = proc.communicate()
+    # dev_null = open(os.path.devnull, 'r+')
+    args = args + additional_args + [ source_path ]
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+    stdout, stderr = proc.communicate()
     if proc.returncode != 0:
-        raise RuntimeError("Failed to run preprocessor")
+        sys.stderr.write(stdout or '')
+        sys.stderr.write(stderr or '')
+        print repr(board)
+        raise PreprocessorError("Error running preprocessor (%r)" % (args,))
     return stdout
 
 def add_variant_macros(board):
@@ -83,7 +143,7 @@ def add_variant_macros(board):
     extract all defined macros and attach them to the board dict under key
     'macros'
     """
-    board["pin_path"] = os.path.join(ARDUINO_PATH, "hardware/arduino/variants/%s/pins_arduino.h" % (board["build.variant"]))
+    board["pin_path"] = os.path.join(ARDUINO_PATH, "variants/%s/pins_arduino.h" % (board["build.variant"]))
     macros = run_preprocessor(board, ["-dM"])
     macros = [ re.sub(r"^#define ", "", macro) for macro in macros.split("\n") ]
     macros = [ tuple(macro.split(" ", 1)) for macro in macros if " " in macro ]
@@ -100,7 +160,7 @@ def find_unambiguous_macros(boards):
     ambiguous_macros = set()
     # build list of ambiguous macros
     for board in boards:
-        for key,value in board["macros"].items():
+        for key, value in board["macros"].items():
             if not re.match(r"^-?0?x?[\dA-Fa-f]+L?$", value.strip()):
                 ambiguous_macros.add(key)
     # trim the ambiguous macros from any of the boards
@@ -123,21 +183,21 @@ def find_unique_macro_keys(boards):
     """
     identifying_keys = set()
     for board in boards:
-        duplicates = list( dup for dup in boards if dup != board )
+        duplicates = list(dup for dup in boards if dup != board)
         for dup in duplicates:
             # skip anything that's already unique as per existing keys
             identified = False
             for key in identifying_keys:
-                identified = identified or board["macros"].get(key,"") != dup["macros"].get(key, "")
+                identified = identified or board["macros"].get(key, "") != dup["macros"].get(key, "")
             if identified:
                 continue
 
             # find something unique about this duplicate
             uniques = set(board["macros"].items()) ^ set(dup["macros"].items())
-            uniques = [ key for key,value in uniques ]
+            uniques = [ key for key, value in uniques ]
             # find the least selective key in the uniques
             def selectiveness(key):
-                return len([d for d in duplicates if ( d["macros"].get(key, "") == board["macros"].get(key, ""))])
+                return len([d for d in duplicates if (d["macros"].get(key, "") == board["macros"].get(key, ""))])
             uniques = sorted(uniques, key=selectiveness)
             if len(uniques) > 0:
                 identifying_keys.add(uniques[0])
@@ -155,7 +215,7 @@ def merge_matching_boards(boards, identifying_keys):
     Returns a new list of boards, with an ambiguously defined ones merged together.
     """
     def key(board):
-        return str([ board["macros"].get(key,"") for key in identifying_keys ])
+        return str([ board["macros"].get(key, "") for key in identifying_keys ])
 
     # Merge together any boards with identical keys (making composite names & ids)
     unique_boards = []
@@ -180,7 +240,7 @@ def extract_portnames_pins(board):
     """
     def extract_array(array_name):
         """ Match a multiline C array with the given name (pretty clumsy.) """
-        content = re.search(array_name + ".+?\{(.+?)}", output, re.MULTILINE|re.DOTALL).group(1)
+        content = re.search(array_name + ".+?\{(.+?)}", output, re.MULTILINE | re.DOTALL).group(1)
         return [ e.strip() for e in content.split(",") if len(e.strip()) ]
 
     output = run_preprocessor(board)
@@ -196,6 +256,8 @@ def extract_portnames_pins(board):
     # do some sanity checks on the data we extracted
     if len(board["ports"]) != len(board["bitmasks"]):
         raise RuntimeError("Number of ports in %s doesn't match bitmask count - %d vs %d" % (board["id"], len(board["ports"]), len(board["bitmasks"])))
+    if "NUM_DIGITAL_PINS" not in board["macros"]:
+        raise RuntimeError("No digital pins count for %s in the header, ports = %i" % (board["id"], len(board["ports"])))
     if len(board["ports"]) != int(board["macros"]["NUM_DIGITAL_PINS"]):
         raise RuntimeError("Number of ports in %s doesn't match number of digital pins reported in header" % (board["id"], len(board["ports"]), board["macros"]["NUM_DIGITAL_PINS"]))
 
@@ -240,7 +302,7 @@ PORT_TEST_TEMPLATE = """
 TIMER_LOOKUP = {
 		"TIMER1A": ("TCCR1A", "COM1A1"),
 		"TIMER1B": ("TCCR1A", "COM1B1"),
-		"TIMER2":  ("TCCR2", "COM21"),
+		"TIMER2":  ("TCCR2" , "COM21" ),
 		"TIMER0A": ("TCCR0A", "COM0A1"),
 		"TIMER0B": ("TCCR0A", "COM0B1"),
 		"TIMER2A": ("TCCR2A", "COM2A1"),
@@ -275,7 +337,7 @@ def generate_header_file(boards, identifying_keys, output):
                 ifdef_clause.append("defined(%(key)s) && (%(key)s+0) == %(value)s" %
                                     {"key": key, "value": board["macros"][key]})
             else:
-                ifdef_clause.append("(!defined(%s) || !(%s+0))" % (key,key))
+                ifdef_clause.append("(!defined(%s) || !(%s+0))" % (key, key))
         ifdef_clause = " && ".join(ifdef_clause)
 
         # Build up the macro conditionals
@@ -287,7 +349,7 @@ def generate_header_file(boards, identifying_keys, output):
         direction_clause = ""
         output_clause = ""
         input_clause = ""
-        for number,port,bitmask,timer in zip(range(len(board["ports"])),
+        for number, port, bitmask, timer in zip(range(len(board["ports"])),
                                              board["ports"],
                                              board["bitmasks"],
                                              board["timers"]):
@@ -296,15 +358,15 @@ def generate_header_file(boards, identifying_keys, output):
                 digitalread_clause += DIGITALREAD_TEMPLATE % locals()
                 pinmode_clause += PINMODE_TEMPLATE % locals()
                 if timer is not None:
-                    timer_reg,timer_bit = TIMER_LOOKUP[timer]
+                    timer_reg, timer_bit = TIMER_LOOKUP[timer]
                     timer_clause += TIMER_TEMPLATE % locals()
                     ispwm_clause += ISPWM_TEMPLATE % locals()
                 direction_clause += PORT_TEST_TEMPLATE % {"number":number,
-                                                          "port":"DDR"+port}
+                                                          "port":"DDR" + port}
                 output_clause += PORT_TEST_TEMPLATE % {"number":number,
-                                                       "port":"PORT"+port}
+                                                       "port":"PORT" + port}
                 input_clause += PORT_TEST_TEMPLATE % {"number":number,
-                                                       "port":"PIN"+port}
+                                                       "port":"PIN" + port}
 
         output.write(BOARD_TEMPLATE % dict(locals(), **board))
     with open("components/footer.cpp") as footer:
