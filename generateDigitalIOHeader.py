@@ -133,7 +133,6 @@ def run_preprocessor(board, additional_args=[]):
     if proc.returncode != 0:
         sys.stderr.write(stdout or '')
         sys.stderr.write(stderr or '')
-        print repr(board)
         raise PreprocessorError("Error running preprocessor (%r)" % (args,))
     return stdout
 
