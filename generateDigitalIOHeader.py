@@ -65,10 +65,10 @@ def run_preprocessor(board, additional_args=[]):
         args += [ "-DUSB_PID=%s" % board["build.pid" ] ]
     proc = subprocess.Popen(args + additional_args + [ source_path ],
                             stdout=subprocess.PIPE)
-    proc.wait()
+    stdout, _ = proc.communicate()
     if proc.returncode != 0:
-        raise Error("Failed to run preprocessor")
-    return proc.stdout.read()
+        raise RuntimeError("Failed to run preprocessor")
+    return stdout
 
 def add_variant_macros(board):
     """
