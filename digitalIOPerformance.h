@@ -119,7 +119,7 @@ static inline int digitalReadSafe(uint8_t pin) {
  *   Arduino Mini w/ ATmega168 | Arduino Nano w/ ATmega168 | Arduino BT w/ ATmega168
  *   MCU: atmega168
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 8 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x94 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 8 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x94 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -527,7 +527,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino Pro or Pro Mini (3.3V, 8 MHz) w/ ATmega168 | LilyPad Arduino w/ ATmega168
  *   MCU: atmega168
  */
-#if defined(F_CPU) && (F_CPU+0) == 8000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x94 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 8000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x94 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -935,7 +935,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   LilyPad Arduino w/ ATmega328 | Arduino Pro or Pro Mini (3.3V, 8 MHz) w/ ATmega328
  *   MCU: atmega328p
  */
-#if defined(F_CPU) && (F_CPU+0) == 8000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 8000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -1343,7 +1343,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino NG or older w/ ATmega8
  *   MCU: atmega8
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x93 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x93 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -1742,7 +1742,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino Pro or Pro Mini (5V, 16 MHz) w/ ATmega168 | Arduino NG or older w/ ATmega168 | Arduino Diecimila or Duemilanove w/ ATmega168
  *   MCU: atmega168
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x94 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x94 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -2150,7 +2150,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino Fio
  *   MCU: atmega328p
  */
-#if defined(F_CPU) && (F_CPU+0) == 8000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 8 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 8000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 8 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -2558,7 +2558,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino Mega 2560 or Mega ADK
  *   MCU: atmega2560
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 16 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x98 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 16 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x98 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -3789,11 +3789,11 @@ static inline bool _inputIsAtomic(uint8_t pin) {
 
 #endif
 /* Arduino board:
- *   pro5v328 | atmega328 | ethernet | uno
- *   Arduino Pro or Pro Mini (5V, 16 MHz) w/ ATmega328 | Arduino Duemilanove w/ ATmega328 | Arduino Ethernet | Arduino Uno
+ *   pro5v328 | atmega328 | uno
+ *   Arduino Pro or Pro Mini (5V, 16 MHz) w/ ATmega328 | Arduino Duemilanove w/ ATmega328 | Arduino Uno
  *   MCU: atmega328p
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -4201,7 +4201,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino BT w/ ATmega328 | Arduino Nano w/ ATmega328 | Arduino Mini w/ ATmega328
  *   MCU: atmega328p
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 8 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 8 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -4609,7 +4609,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino Esplora
  *   MCU: atmega32u4
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 12 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && defined(USB_PID) && (USB_PID+0) == 0x803C
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 12 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && defined(USB_PID) && (USB_PID+0) == 0x803C
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -5180,7 +5180,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino Mega (ATmega1280)
  *   MCU: atmega1280
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 16 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x97 && (!defined(USB_PID) || !(USB_PID+0))
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 16 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x97 && (!defined(USB_PID) || !(USB_PID+0))
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -6415,7 +6415,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   LilyPad Arduino USB
  *   MCU: atmega32u4
  */
-#if defined(F_CPU) && (F_CPU+0) == 8000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 12 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && defined(USB_PID) && (USB_PID+0) == 0x9208
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 8000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 12 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && defined(USB_PID) && (USB_PID+0) == 0x9208
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -6986,7 +6986,7 @@ static inline bool _inputIsAtomic(uint8_t pin) {
  *   Arduino Micro
  *   MCU: atmega32u4
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 12 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && defined(USB_PID) && (USB_PID+0) == 0x8037
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 12 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && defined(USB_PID) && (USB_PID+0) == 0x8037
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif
@@ -7553,11 +7553,419 @@ static inline bool _inputIsAtomic(uint8_t pin) {
 
 #endif
 /* Arduino board:
+ *   ethernet
+ *   Arduino Ethernet
+ *   MCU: atmega328p
+ */
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 9 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 6 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && (!defined(USB_PID) || !(USB_PID+0))
+#ifdef _DIGITALIO_MATCHED_BOARD
+#error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
+#endif
+#define _DIGITALIO_MATCHED_BOARD
+
+__attribute__((always_inline))
+static inline void pinModeFast(uint8_t pin, uint8_t mode) {
+  if(!__builtin_constant_p(pin)) {
+    pinMode(pin, mode);
+  }
+  else if(pin == 0 && mode == INPUT) {
+    DDRD &= ~(1 << (0));
+    PORTD &= ~(1 << (0));
+  } else if(pin == 0 && mode == INPUT_PULLUP) {
+    DDRD &= ~(1 << (0));
+    PORTD |= (1 << (0));
+  } else if(pin == 0) DDRD |= (1 << (0));
+  else if(pin == 1 && mode == INPUT) {
+    DDRD &= ~(1 << (1));
+    PORTD &= ~(1 << (1));
+  } else if(pin == 1 && mode == INPUT_PULLUP) {
+    DDRD &= ~(1 << (1));
+    PORTD |= (1 << (1));
+  } else if(pin == 1) DDRD |= (1 << (1));
+  else if(pin == 2 && mode == INPUT) {
+    DDRD &= ~(1 << (2));
+    PORTD &= ~(1 << (2));
+  } else if(pin == 2 && mode == INPUT_PULLUP) {
+    DDRD &= ~(1 << (2));
+    PORTD |= (1 << (2));
+  } else if(pin == 2) DDRD |= (1 << (2));
+  else if(pin == 3 && mode == INPUT) {
+    DDRD &= ~(1 << (3));
+    PORTD &= ~(1 << (3));
+  } else if(pin == 3 && mode == INPUT_PULLUP) {
+    DDRD &= ~(1 << (3));
+    PORTD |= (1 << (3));
+  } else if(pin == 3) DDRD |= (1 << (3));
+  else if(pin == 4 && mode == INPUT) {
+    DDRD &= ~(1 << (4));
+    PORTD &= ~(1 << (4));
+  } else if(pin == 4 && mode == INPUT_PULLUP) {
+    DDRD &= ~(1 << (4));
+    PORTD |= (1 << (4));
+  } else if(pin == 4) DDRD |= (1 << (4));
+  else if(pin == 5 && mode == INPUT) {
+    DDRD &= ~(1 << (5));
+    PORTD &= ~(1 << (5));
+  } else if(pin == 5 && mode == INPUT_PULLUP) {
+    DDRD &= ~(1 << (5));
+    PORTD |= (1 << (5));
+  } else if(pin == 5) DDRD |= (1 << (5));
+  else if(pin == 6 && mode == INPUT) {
+    DDRD &= ~(1 << (6));
+    PORTD &= ~(1 << (6));
+  } else if(pin == 6 && mode == INPUT_PULLUP) {
+    DDRD &= ~(1 << (6));
+    PORTD |= (1 << (6));
+  } else if(pin == 6) DDRD |= (1 << (6));
+  else if(pin == 7 && mode == INPUT) {
+    DDRD &= ~(1 << (7));
+    PORTD &= ~(1 << (7));
+  } else if(pin == 7 && mode == INPUT_PULLUP) {
+    DDRD &= ~(1 << (7));
+    PORTD |= (1 << (7));
+  } else if(pin == 7) DDRD |= (1 << (7));
+  else if(pin == 8 && mode == INPUT) {
+    DDRB &= ~(1 << (0));
+    PORTB &= ~(1 << (0));
+  } else if(pin == 8 && mode == INPUT_PULLUP) {
+    DDRB &= ~(1 << (0));
+    PORTB |= (1 << (0));
+  } else if(pin == 8) DDRB |= (1 << (0));
+  else if(pin == 9 && mode == INPUT) {
+    DDRB &= ~(1 << (1));
+    PORTB &= ~(1 << (1));
+  } else if(pin == 9 && mode == INPUT_PULLUP) {
+    DDRB &= ~(1 << (1));
+    PORTB |= (1 << (1));
+  } else if(pin == 9) DDRB |= (1 << (1));
+  else if(pin == 10 && mode == INPUT) {
+    DDRB &= ~(1 << (2));
+    PORTB &= ~(1 << (2));
+  } else if(pin == 10 && mode == INPUT_PULLUP) {
+    DDRB &= ~(1 << (2));
+    PORTB |= (1 << (2));
+  } else if(pin == 10) DDRB |= (1 << (2));
+  else if(pin == 11 && mode == INPUT) {
+    DDRB &= ~(1 << (3));
+    PORTB &= ~(1 << (3));
+  } else if(pin == 11 && mode == INPUT_PULLUP) {
+    DDRB &= ~(1 << (3));
+    PORTB |= (1 << (3));
+  } else if(pin == 11) DDRB |= (1 << (3));
+  else if(pin == 12 && mode == INPUT) {
+    DDRB &= ~(1 << (4));
+    PORTB &= ~(1 << (4));
+  } else if(pin == 12 && mode == INPUT_PULLUP) {
+    DDRB &= ~(1 << (4));
+    PORTB |= (1 << (4));
+  } else if(pin == 12) DDRB |= (1 << (4));
+  else if(pin == 13 && mode == INPUT) {
+    DDRB &= ~(1 << (5));
+    PORTB &= ~(1 << (5));
+  } else if(pin == 13 && mode == INPUT_PULLUP) {
+    DDRB &= ~(1 << (5));
+    PORTB |= (1 << (5));
+  } else if(pin == 13) DDRB |= (1 << (5));
+  else if(pin == 14 && mode == INPUT) {
+    DDRC &= ~(1 << (0));
+    PORTC &= ~(1 << (0));
+  } else if(pin == 14 && mode == INPUT_PULLUP) {
+    DDRC &= ~(1 << (0));
+    PORTC |= (1 << (0));
+  } else if(pin == 14) DDRC |= (1 << (0));
+  else if(pin == 15 && mode == INPUT) {
+    DDRC &= ~(1 << (1));
+    PORTC &= ~(1 << (1));
+  } else if(pin == 15 && mode == INPUT_PULLUP) {
+    DDRC &= ~(1 << (1));
+    PORTC |= (1 << (1));
+  } else if(pin == 15) DDRC |= (1 << (1));
+  else if(pin == 16 && mode == INPUT) {
+    DDRC &= ~(1 << (2));
+    PORTC &= ~(1 << (2));
+  } else if(pin == 16 && mode == INPUT_PULLUP) {
+    DDRC &= ~(1 << (2));
+    PORTC |= (1 << (2));
+  } else if(pin == 16) DDRC |= (1 << (2));
+  else if(pin == 17 && mode == INPUT) {
+    DDRC &= ~(1 << (3));
+    PORTC &= ~(1 << (3));
+  } else if(pin == 17 && mode == INPUT_PULLUP) {
+    DDRC &= ~(1 << (3));
+    PORTC |= (1 << (3));
+  } else if(pin == 17) DDRC |= (1 << (3));
+  else if(pin == 18 && mode == INPUT) {
+    DDRC &= ~(1 << (4));
+    PORTC &= ~(1 << (4));
+  } else if(pin == 18 && mode == INPUT_PULLUP) {
+    DDRC &= ~(1 << (4));
+    PORTC |= (1 << (4));
+  } else if(pin == 18) DDRC |= (1 << (4));
+  else if(pin == 19 && mode == INPUT) {
+    DDRC &= ~(1 << (5));
+    PORTC &= ~(1 << (5));
+  } else if(pin == 19 && mode == INPUT_PULLUP) {
+    DDRC &= ~(1 << (5));
+    PORTC |= (1 << (5));
+  } else if(pin == 19) DDRC |= (1 << (5));
+
+}
+
+__attribute__((always_inline))
+static inline void digitalWriteFast(uint8_t pin, uint8_t value) {
+  if(!__builtin_constant_p(pin)) {
+    digitalWrite(pin, value);
+  }
+  else if(pin == 0 && value) PORTD  |= (1 << (0));
+  else if(pin == 0 && !value) PORTD &= ~(1 << (0));
+  else if(pin == 1 && value) PORTD  |= (1 << (1));
+  else if(pin == 1 && !value) PORTD &= ~(1 << (1));
+  else if(pin == 2 && value) PORTD  |= (1 << (2));
+  else if(pin == 2 && !value) PORTD &= ~(1 << (2));
+  else if(pin == 3 && value) PORTD  |= (1 << (3));
+  else if(pin == 3 && !value) PORTD &= ~(1 << (3));
+  else if(pin == 4 && value) PORTD  |= (1 << (4));
+  else if(pin == 4 && !value) PORTD &= ~(1 << (4));
+  else if(pin == 5 && value) PORTD  |= (1 << (5));
+  else if(pin == 5 && !value) PORTD &= ~(1 << (5));
+  else if(pin == 6 && value) PORTD  |= (1 << (6));
+  else if(pin == 6 && !value) PORTD &= ~(1 << (6));
+  else if(pin == 7 && value) PORTD  |= (1 << (7));
+  else if(pin == 7 && !value) PORTD &= ~(1 << (7));
+  else if(pin == 8 && value) PORTB  |= (1 << (0));
+  else if(pin == 8 && !value) PORTB &= ~(1 << (0));
+  else if(pin == 9 && value) PORTB  |= (1 << (1));
+  else if(pin == 9 && !value) PORTB &= ~(1 << (1));
+  else if(pin == 10 && value) PORTB  |= (1 << (2));
+  else if(pin == 10 && !value) PORTB &= ~(1 << (2));
+  else if(pin == 11 && value) PORTB  |= (1 << (3));
+  else if(pin == 11 && !value) PORTB &= ~(1 << (3));
+  else if(pin == 12 && value) PORTB  |= (1 << (4));
+  else if(pin == 12 && !value) PORTB &= ~(1 << (4));
+  else if(pin == 13 && value) PORTB  |= (1 << (5));
+  else if(pin == 13 && !value) PORTB &= ~(1 << (5));
+  else if(pin == 14 && value) PORTC  |= (1 << (0));
+  else if(pin == 14 && !value) PORTC &= ~(1 << (0));
+  else if(pin == 15 && value) PORTC  |= (1 << (1));
+  else if(pin == 15 && !value) PORTC &= ~(1 << (1));
+  else if(pin == 16 && value) PORTC  |= (1 << (2));
+  else if(pin == 16 && !value) PORTC &= ~(1 << (2));
+  else if(pin == 17 && value) PORTC  |= (1 << (3));
+  else if(pin == 17 && !value) PORTC &= ~(1 << (3));
+  else if(pin == 18 && value) PORTC  |= (1 << (4));
+  else if(pin == 18 && !value) PORTC &= ~(1 << (4));
+  else if(pin == 19 && value) PORTC  |= (1 << (5));
+  else if(pin == 19 && !value) PORTC &= ~(1 << (5));
+
+}
+
+__attribute__((always_inline))
+static inline int digitalReadFast(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return digitalRead(pin);
+  }
+  else if(pin == 0) return PIND & (1 << (0)) ? HIGH : LOW;
+  else if(pin == 1) return PIND & (1 << (1)) ? HIGH : LOW;
+  else if(pin == 2) return PIND & (1 << (2)) ? HIGH : LOW;
+  else if(pin == 3) return PIND & (1 << (3)) ? HIGH : LOW;
+  else if(pin == 4) return PIND & (1 << (4)) ? HIGH : LOW;
+  else if(pin == 5) return PIND & (1 << (5)) ? HIGH : LOW;
+  else if(pin == 6) return PIND & (1 << (6)) ? HIGH : LOW;
+  else if(pin == 7) return PIND & (1 << (7)) ? HIGH : LOW;
+  else if(pin == 8) return PINB & (1 << (0)) ? HIGH : LOW;
+  else if(pin == 9) return PINB & (1 << (1)) ? HIGH : LOW;
+  else if(pin == 10) return PINB & (1 << (2)) ? HIGH : LOW;
+  else if(pin == 11) return PINB & (1 << (3)) ? HIGH : LOW;
+  else if(pin == 12) return PINB & (1 << (4)) ? HIGH : LOW;
+  else if(pin == 13) return PINB & (1 << (5)) ? HIGH : LOW;
+  else if(pin == 14) return PINC & (1 << (0)) ? HIGH : LOW;
+  else if(pin == 15) return PINC & (1 << (1)) ? HIGH : LOW;
+  else if(pin == 16) return PINC & (1 << (2)) ? HIGH : LOW;
+  else if(pin == 17) return PINC & (1 << (3)) ? HIGH : LOW;
+  else if(pin == 18) return PINC & (1 << (4)) ? HIGH : LOW;
+  else if(pin == 19) return PINC & (1 << (5)) ? HIGH : LOW;
+
+  return LOW;
+}
+
+__attribute__((always_inline))
+static inline void noAnalogWrite(uint8_t pin) {
+  if(!__builtin_constant_p(pin)) {
+    return; // noAnalogWrite is taken care of by digitalWrite() for variables
+  }
+  else if(pin == 3) TCCR2A &= ~_BV(COM2B1);
+  else if(pin == 5) TCCR0A &= ~_BV(COM0B1);
+  else if(pin == 6) TCCR0A &= ~_BV(COM0A1);
+  else if(pin == 9) TCCR1A &= ~_BV(COM1A1);
+  else if(pin == 10) TCCR1A &= ~_BV(COM1B1);
+  else if(pin == 11) TCCR2A &= ~_BV(COM2A1);
+
+}
+
+__attribute__((always_inline))
+static inline bool _isPWMPin(uint8_t pin) {
+  if(pin == 3)
+    return true;
+  if(pin == 5)
+    return true;
+  if(pin == 6)
+    return true;
+  if(pin == 9)
+    return true;
+  if(pin == 10)
+    return true;
+  if(pin == 11)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _directionIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(DDRD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(DDRB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(DDRC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(DDRC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _outputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PORTD);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PORTB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PORTC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PORTC);
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool _inputIsAtomic(uint8_t pin) {
+  if(pin == 0)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 1)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 2)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 3)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 4)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 5)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 6)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 7)
+    return _SFR_IO_REG_P(PIND);
+  if(pin == 8)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 9)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 10)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 11)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 12)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 13)
+    return _SFR_IO_REG_P(PINB);
+  if(pin == 14)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 15)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 16)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 17)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 18)
+    return _SFR_IO_REG_P(PINC);
+  if(pin == 19)
+    return _SFR_IO_REG_P(PINC);
+
+  return false;
+}
+
+
+#endif
+/* Arduino board:
  *   leonardo
  *   Arduino Leonardo
  *   MCU: atmega32u4
  */
-#if defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 12 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && defined(USB_PID) && (USB_PID+0) == 0x8036
+#if defined(LED_BUILTIN) && (LED_BUILTIN+0) == 13 && defined(F_CPU) && (F_CPU+0) == 16000000L && defined(NUM_ANALOG_INPUTS) && (NUM_ANALOG_INPUTS+0) == 12 && defined(SIGNATURE_1) && (SIGNATURE_1+0) == 0x95 && defined(USB_PID) && (USB_PID+0) == 0x8036
 #ifdef _DIGITALIO_MATCHED_BOARD
 #error "This header's Arduino configuration heuristics have matched multiple boards. The header may be out of date."
 #endif

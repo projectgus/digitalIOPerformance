@@ -26,10 +26,17 @@ def main():
     find_unambiguous_macros(boards)
     identifying_keys = find_unique_macro_keys(boards)
     boards = merge_matching_boards(boards, identifying_keys)
+    outboards = []
     for board in boards:
-        extract_portnames_pins(board)
+        try:
+            extract_portnames_pins(board)
+            outboards.append(board)
+        except:
+            print "Failed to extract portnames and pins for", board['id'], "skipping"
+            continue
+
     with open("digitalIOPerformance.h", "w") as output:
-        generate_header_file(boards, identifying_keys, output)
+        generate_header_file(outboards, identifying_keys, output)
 
 def extract_boards():
     """ Parse the Arduino boards file and return a list of all the boards,
