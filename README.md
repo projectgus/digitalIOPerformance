@@ -209,3 +209,5 @@ Also thanks to Alastair D'Silva who told me a while ago about the
 trick of preprocessing pins_arduino.h to extract Arduino pin
 information, he uses this in the performance-oriented AVR library
 [MHVLib](http://www.makehackvoid.com/project/MHVLib).
+
+Update for Arduino 1.6 support by Doncho Gunchev.
