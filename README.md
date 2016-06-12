@@ -1,12 +1,3 @@
-# IMPORTANT
-
-With the release of Arduino 1.6, this **library is obsolete** and
-mostly a historical curiosity for now. It doesn't support the latest
-boards or the new core/library format, etc.
-
-If you're interested in taking over maintainence and updating it, let
-me know.
-
 # digitalIOPerformance.h
 
 digitalIOPerformance.h is a single-file Arduino library (header file)
@@ -218,3 +209,5 @@ Also thanks to Alastair D'Silva who told me a while ago about the
 trick of preprocessing pins_arduino.h to extract Arduino pin
 information, he uses this in the performance-oriented AVR library
 [MHVLib](http://www.makehackvoid.com/project/MHVLib).
+
+Update for Arduino 1.6 support by Doncho Gunchev.

@@ -42,12 +42,14 @@ inline static bool _outputIsAtomic(uint8_t pin);
 inline static bool _inputIsAtomic(uint8_t pin);
 
 #ifdef DIGITALIO_NO_INTERRUPT_SAFETY
+#undef DIGITALIO_NO_INTERRUPT_SAFETY
 #define DIGITALIO_NO_INTERRUPT_SAFETY 1
 #else
 #define DIGITALIO_NO_INTERRUPT_SAFETY 0
 #endif
 
 #ifdef DIGITALIO_NO_MIX_ANALOGWRITE
+#undef DIGITALIO_NO_MIX_ANALOGWRITE
 #define DIGITALIO_NO_MIX_ANALOGWRITE 1
 #else
 #define DIGITALIO_NO_MIX_ANALOGWRITE 0
